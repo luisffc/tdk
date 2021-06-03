@@ -19,7 +19,7 @@ awsCloudTrail001:
   parent: "#/policy/types/dmiccfAwsCloudTrail"
 
   # Policy will be under category hierarchy level: `Dunder Mifflin > Logging & Auditing`
-  category: "dmi-ccf#/control/categories/dmiccfAud"
+  category: "#/control/categories/dmiccfAud"
 
   # This policy refers to resource types listed bellow
   targets:

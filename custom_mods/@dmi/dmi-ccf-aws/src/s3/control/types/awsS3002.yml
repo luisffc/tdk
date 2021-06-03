@@ -18,7 +18,7 @@ awsS3002:
   parent: "#/control/types/dmiccfAwsS3"
 
   # Control will be under category hierarchy level: `Dunder Mifflin > Data Protection & Business Continuity`
-  category: "dmi-ccf#/control/categories/dmiccfData"
+  category: "#/control/categories/dmiccfData"
 
   # Control will run against the resource types listed bellow
   targets:

@@ -1,8 +1,9 @@
 # CHANGELOG for @dmi/dmi-ccf-aws
 
-## v1.0.0 [2020-08-18]
+## v1.0.0 [2021-06-03]
 
 **Policy types**
+* Added: Dunder Mifflin
 * Added: Dunder Mifflin > AWS
 * Added: Dunder Mifflin > AWS > CloudTrail
 * Added: Dunder Mifflin > AWS > CloudTrail > AWS.CloudTrail.001 - Enable Cloudtrail in All Regions
@@ -21,6 +22,7 @@
 * Added: Dunder Mifflin > AWS > VPC > AWS.VPC.001 - Disallow access to management ports from 0.0.0.0/0 > Management Ports
 
 **Control types**
+* Added: Dunder Mifflin
 * Added: Dunder Mifflin > AWS
 * Added: Dunder Mifflin > AWS > CloudTrail
 * Added: Dunder Mifflin > AWS > CloudTrail > AWS.CloudTrail.001 - Enable Cloudtrail in All Regions
@@ -34,3 +36,11 @@
 * Added: Dunder Mifflin > AWS > S3 > AWS.S3.002 - Enable Versioning on S3 Buckets
 * Added: Dunder Mifflin > AWS > VPC
 * Added: Dunder Mifflin > AWS > VPC > AWS.VPC.001 - Disallow access to management ports from 0.0.0.0/0
+
+**Control categories**
+* Added: Dunder Mifflin
+* Added: Dunder Mifflin > Authentication & Access Control
+* Added: Dunder Mifflin > Data Protection & Business Continuity
+* Added: Dunder Mifflin > Data Security & Encryption
+* Added: Dunder Mifflin > Logging & Auditing
+* Added: Dunder Mifflin > Network Security

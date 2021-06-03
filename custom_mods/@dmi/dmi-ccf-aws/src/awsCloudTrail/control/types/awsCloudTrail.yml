@@ -17,4 +17,4 @@ dmiccfAwsCloudTrail:
   parent: "#/control/types/dmiccfAws"
 
   # Control will be under category hierarchy level: `Dunder Mifflin > Logging & CloudTrailiting`
-  category: "dmi-ccf#/control/categories/dmiccfAud"
+  category: "#/control/categories/dmiccfAud"

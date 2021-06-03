@@ -2,7 +2,7 @@ awsVpc001:
   title: AWS.VPC.001 - Disallow access to management ports from 0.0.0.0/0
   icon: fal-shield-check
   parent: "#/policy/types/dmiccfAwsVpc"
-  category: "dmi-ccf#/control/categories/dmiccfNet"
+  category: "#/control/categories/dmiccfNet"
   targets:
     - "tmod:@turbot/aws-vpc-security#/resource/types/securityGroup"
   description: |
@@ -19,7 +19,7 @@ awsVpc001ManagementPorts:
   title: Management Ports
   icon: fal-badge-check
   parent: "#/policy/types/awsVpc001"
-  category: "dmi-ccf#/control/categories/dmiccfNet"
+  category: "#/control/categories/dmiccfNet"
   targets:
     - "tmod:@turbot/aws-vpc-security#/resource/types/securityGroup"
   description: |

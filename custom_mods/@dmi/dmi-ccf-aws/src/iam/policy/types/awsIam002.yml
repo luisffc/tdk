@@ -2,7 +2,7 @@ awsIam002:
   title: AWS.IAM.002 - Require MFA for console users
   icon: fal-shield-check
   parent: "#/policy/types/dmiccfAwsIam"
-  category: "dmi-ccf#/control/categories/dmiccfAac"
+  category: "#/control/categories/dmiccfAac"
   targets:
     - "tmod:@turbot/aws-iam#/resource/types/credentialReport"
   description: |

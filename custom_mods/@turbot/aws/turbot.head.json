@@ -1,0 +1,4483 @@
+{
+  "$id": "tmod:@turbot/aws",
+  "title": "@turbot/aws",
+  "author": "Turbot HQ, Inc",
+  "version": "5.15.3",
+  "license": "For LICENSE see https://turbot.com/license",
+  "peerDependencies": {
+    "@turbot/turbot": "^5.22.0",
+    "@turbot/turbot-iam": "^5.0.0"
+  },
+  "scripts": {
+    "prepack": "./build.sh"
+  },
+  "data": [
+    {
+      "permission": "account:DisableRegion",
+      "grant": "Owner",
+      "resourceType": "Region",
+      "operationType": "Delete",
+      "fullCmdbUpdate": "",
+      "dependency": "",
+      "date": "3/26/20",
+      "help": "Owners can disable an AWS region.",
+      "eventPermission": "billingconsole:DisableRegion"
+    },
+    {
+      "permission": "account:EnableRegion",
+      "grant": "Owner",
+      "resourceType": "Region",
+      "operationType": "Create",
+      "fullCmdbUpdate": "",
+      "dependency": "",
+      "date": "3/26/20",
+      "help": "Owners can enable an AWS region.",
+      "eventPermission": "billingconsole:EnableRegion"
+    },
+    {
+      "permission": "account:ListRegions",
+      "grant": "Metadata",
+      "resourceType": "Region",
+      "operationType": "Read",
+      "fullCmdbUpdate": "",
+      "dependency": "",
+      "date": "3/26/20",
+      "help": "",
+      "eventPermission": ""
+    },
+    {
+      "permission": "aws-portal:ViewAccount",
+      "grant": "Metadata",
+      "resourceType": "",
+      "operationType": "",
+      "fullCmdbUpdate": "",
+      "dependency": "",
+      "date": "3/26/20",
+      "help": "",
+      "eventPermission": ""
+    },
+    {
+      "permission": "iam:CreateAccountAlias",
+      "grant": "Owner",
+      "resourceType": "Account",
+      "operationType": "Update",
+      "fullCmdbUpdate": "",
+      "dependency": "",
+      "date": "1/28/16",
+      "help": "Owners can manage the AWS account alias.",
+      "eventPermission": ""
+    },
+    {
+      "permission": "iam:DeleteAccountAlias",
+      "grant": "Owner",
+      "resourceType": "Account",
+      "operationType": "Update",
+      "fullCmdbUpdate": "",
+      "dependency": "",
+      "date": "1/28/16",
+      "help": "Owners can manage the AWS account alias.",
+      "eventPermission": ""
+    },
+    {
+      "permission": "iam:ListAccountAliases",
+      "grant": "Metadata",
+      "resourceType": "",
+      "operationType": "",
+      "fullCmdbUpdate": "",
+      "dependency": "",
+      "date": "1/28/16",
+      "help": "",
+      "eventPermission": ""
+    }
+  ],
+  "permission": {
+    "types": {
+      "aws": {
+        "title": "AWS",
+        "category": "tmod:@turbot/turbot#/resource/categories/cloud",
+        "targets": "aws#/resource/types/account"
+      }
+    }
+  },
+  "action": {
+    "types": {
+      "accountEventHandler": {
+        "title": "Event Handler",
+        "description": "Handle raw AWS events and re-raise the event with AWS account or region AKA.",
+        "parent": "aws#/resource/types/account",
+        "category": "turbot#/control/categories/cloudService",
+        "maintenanceRestriction": "anytime",
+        "targets": "aws#/resource/types/account"
+      },
+      "accountRouter": {
+        "title": "Router",
+        "icon": "fal-random",
+        "parent": "#/resource/types/account",
+        "category": "turbot#/control/categories/cmdb",
+        "targets": [
+          "aws#/resource/types/account"
+        ],
+        "description": "Process events for AWS  service Account resources.\n\nThe router receives events from the event handler and creates, updates, or deletes Account resources in the CMDB.\n",
+        "events": [
+          "iam:CreateAccountAlias",
+          "iam:DeleteAccountAlias"
+        ]
+      },
+      "eventPoller": {
+        "title": "Event Poller",
+        "icon": "fal-poll-h",
+        "description": "Poll AWS events and re-raise in Turbot",
+        "parent": "aws#/resource/types/region",
+        "targets": "aws#/resource/types/region",
+        "category": "turbot#/control/categories/other",
+        "maintenanceRestriction": "anytime",
+        "function": {
+          "src": "functions/account/events",
+          "bundle": "functions/account/events/dist/index.zip",
+          "memory": 1024,
+          "hash": "616ca6f62d"
+        }
+      },
+      "regionRouter": {
+        "title": "Router",
+        "icon": "fal-random",
+        "parent": "#/resource/types/region",
+        "category": "turbot#/control/categories/cmdb",
+        "targets": [
+          "aws#/resource/types/account"
+        ],
+        "description": "Process events for AWS AWS service Region resources.\n\nThe router receives events from the event handler and creates, updates, or deletes Region resources in the CMDB.\n",
+        "events": [
+          "billingconsole:DisableRegion",
+          "billingconsole:EnableRegion"
+        ]
+      }
+    }
+  },
+  "control": {
+    "types": {
+      "accountCmdb": {
+        "title": "CMDB",
+        "icon": "fal-coins",
+        "parent": "#/resource/types/account",
+        "category": "turbot#/control/categories/cmdb",
+        "targets": [
+          "#/resource/types/account"
+        ],
+        "description": "Record and synchronize details for the AWS account into the CMDB.\n\nThe [CMDB](https://turbot.com/v5/docs/concepts/guardrails/cmdb) control is responsible for populating and updating all the attributes for that resource type in the Turbot CMDB.\n\nIf set to Skip then all changes to the CMDB are paused - no new resources will be discovered, no updates will be made and deleted resources will not be removed.\n\nTo cleanup resources and stop tracking changes, set this policy to **\"Enforce: Disabled\"**.\n",
+        "function": {
+          "src": "functions/account/cmdb",
+          "bundle": "functions/account/cmdb/dist/index.zip",
+          "memory": 512,
+          "hash": "624d4ca591"
+        }
+      },
+      "serviceRolesStack": {
+        "icon": "fal-user-tie",
+        "title": "Service Roles",
+        "description": "Configure a custom stack on the AWS Account, per the `Custom Stack > Source`.\n\nA Turbot `Stack` is a set of resources configured by Turbot, as specified\nvia Terraform source.  Stacks are responsible for the creation and deletion\nof multiple resources. Once created, stack resources are responsible for\nconfiguring themselves from the stack source via their `Configured` control.\n",
+        "category": "turbot#/control/categories/configured",
+        "flags": [
+          "transientStorage"
+        ],
+        "parent": "#/control/types/turbot",
+        "targets": "#/resource/types/account",
+        "container": {
+          "type": "tmod:@turbot/turbot#/container/types/factory"
+        }
+      },
+      "accountStack": {
+        "title": "Stack",
+        "icon": "fal-layer-group",
+        "parent": "#/resource/types/account",
+        "category": "turbot#/control/categories/configured",
+        "targets": [
+          "aws#/resource/types/account"
+        ],
+        "description": "Configure a custom stack on AWS, per the custom `Stack > Source`.\n\nA Turbot `Stack` is a set of resources configured by Turbot, as specified\nvia Terraform source.  Stacks are responsible for the creation and deletion\nof multiple resources. Once created, stack resources are responsible for\nconfiguring themselves from the stack source via their `Configured` control.\n",
+        "flags": [
+          "transientStorage"
+        ],
+        "container": {
+          "type": "tmod:@turbot/turbot#/container/types/factory"
+        }
+      },
+      "auditTrail": {
+        "icon": "fal-list-ol",
+        "title": "Audit Trail",
+        "description": "Configure the Turbot Audit Trail stack.\n\nThis stack configures an AWS CloudTrail which can log, continuously monitor,\nand record account activity.\n",
+        "parent": "#/control/types/turbot",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "flags": [
+          "transientStorage"
+        ],
+        "schema": {
+          "type": "string",
+          "x-schema-form": {
+            "type": "code",
+            "language": "json"
+          }
+        },
+        "container": {
+          "type": "tmod:@turbot/turbot#/container/types/factory"
+        }
+      },
+      "eventHandlers": {
+        "title": "Event Handlers",
+        "icon": "fal-calendar-exclamation",
+        "description": "Configure the set of resources in a Turbot Stack per the `Event Handlers >\nSource` policy.\n\nTurbot Stacks are used to manage a set of resources via Terraform.\nStacks are responsible for the creation and deletion of multiple resources,\nbut once created, the resources are responsible for configuring themselves\nwith their `Configured` control, using the Source from the parent stack.\n\nThe AWS Event Handlers stack is responsible for configuring the resources\nrequired for the Turbot Event Handler, which attaches the Turbot Router to\na cloud provider's audit trail. This is a pre-requisite for Turbot to\nprocess and respond to real-time events -- a core capability that allows\nTurbot to respond to changes on resources as they occur.\n",
+        "category": "turbot#/control/categories/configured",
+        "flags": [
+          "transientStorage"
+        ],
+        "parent": "#/control/types/turbot",
+        "targets": "aws#/resource/types/region",
+        "container": {
+          "type": "tmod:@turbot/turbot#/container/types/factory"
+        }
+      },
+      "accountEventPoller": {
+        "title": "Event Poller",
+        "icon": "fab-searchengin",
+        "description": "The Turbot AWS Poller control will query CloudTrail for relevant events on a schedule, and forward them to the router for processing.\n",
+        "category": "turbot#/control/categories/other",
+        "defaultInterval": {
+          "minutes": 11
+        },
+        "parent": "#/control/types/turbot",
+        "targets": "aws#/resource/types/region"
+      },
+      "logging": {
+        "title": "Logging",
+        "icon": "fal-info-circle",
+        "description": "Logging control root.",
+        "parent": "#/control/types/turbot",
+        "category": "turbot#/control/categories/resourceLogging",
+        "targets": []
+      },
+      "loggingBucket": {
+        "icon": "fal-info-circle",
+        "title": "Bucket",
+        "description": "Configure the Turbot Logging Bucket stack.\n\nThis stack configures an AWS S3 Bucket for use as a destination\nfor logs from other AWS services.\n",
+        "parent": "#/control/types/logging",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "flags": [
+          "transientStorage"
+        ],
+        "schema": {
+          "type": "string",
+          "x-schema-form": {
+            "type": "code",
+            "language": "json"
+          }
+        },
+        "container": {
+          "type": "tmod:@turbot/turbot#/container/types/factory"
+        }
+      },
+      "turbot": {
+        "title": "Turbot",
+        "icon": "fab-android",
+        "description": "Turbot control root.",
+        "category": "turbot#/control/categories/turbot",
+        "parent": "#/resource/types/aws",
+        "targets": []
+      },
+      "organizationCmdb": {
+        "title": "CMDB",
+        "icon": "fal-coins",
+        "description": "Record and synchronize details for the AWS organization into the CMDB.",
+        "parent": "#/resource/types/organization",
+        "targets": "#/resource/types/organization",
+        "category": "turbot#/control/categories/cmdb",
+        "help": "#/help/cmdb",
+        "function": {
+          "src": "functions/organization/cmdb",
+          "bundle": "functions/organization/cmdb/dist/index.zip",
+          "memory": 512,
+          "hash": "a24db3f83a"
+        }
+      },
+      "organizationalUnitCmdb": {
+        "title": "CMDB",
+        "icon": "fal-coins",
+        "description": "Record and synchronize details for the AWS Organizational Unit into the CMDB.",
+        "parent": "#/resource/types/organizationalUnit",
+        "targets": "#/resource/types/organizationalUnit",
+        "category": "turbot#/control/categories/cmdb",
+        "help": "#/help/cmdb",
+        "function": {
+          "src": "functions/organizationalUnit/cmdb",
+          "bundle": "functions/organizationalUnit/cmdb/dist/index.zip",
+          "memory": 512,
+          "hash": "3c9b4cf3ee"
+        }
+      },
+      "organizationalUnitDiscovery": {
+        "title": "Discovery",
+        "icon": "fab-searchengin",
+        "description": "Discover AWS Organisational Unit for record in the CMDB.",
+        "parent": "#/resource/types/organizationalUnit",
+        "targets": "aws#/resource/types/organization",
+        "category": "turbot#/control/categories/cmdb",
+        "help": "#/help/cmdb",
+        "function": {
+          "src": "functions/organizationalUnit/discovery",
+          "bundle": "functions/organizationalUnit/discovery/dist/index.zip",
+          "memory": 512,
+          "hash": "09bb07b0d0"
+        }
+      },
+      "regionDiscovery": {
+        "title": "Discovery",
+        "icon": "fab-searchengin",
+        "parent": "#/resource/types/region",
+        "category": "turbot#/control/categories/cmdb",
+        "description": "Discover Regions and add them to Turbot.\n\nThe [Discovery](https://turbot.com/docs/concepts/guardrails/discovery)\ncontrol is tasked with identifying instances for a particular resource.\nThe Discovery control will periodically search for new target resources and\nsave them to the Turbot CMDB.\n\n**Note**: The Discovery control also uses the Regions policy associated with\nthe resource. If the region is not in `AWS > Account > Regions` policy, the\nDiscovery control will delete the region from the CMDB.\n\nStatus:\n  - `Enabled`  - If the region is in the policy and enabled in AWS\n  - `Disabled` - If the region is in the policy and disabled in AWS\n  - `Skipped`  - If the region is not in the policy and enabled in AWS\n",
+        "targets": "#/resource/types/account",
+        "function": {
+          "src": "functions/region/discovery",
+          "bundle": "functions/region/discovery/dist/index.zip",
+          "memory": 512,
+          "hash": "bfa35bc5f4"
+        }
+      },
+      "regionStack": {
+        "title": "Stack",
+        "icon": "fal-layer-group",
+        "parent": "#/resource/types/region",
+        "category": "turbot#/control/categories/configured",
+        "targets": [
+          "aws#/resource/types/region"
+        ],
+        "description": "Configure a custom stack on AWS, per the custom `Stack > Source`.\n\nA Turbot `Stack` is a set of resources configured by Turbot, as specified\nvia Terraform source.  Stacks are responsible for the creation and deletion\nof multiple resources. Once created, stack resources are responsible for\nconfiguring themselves from the stack source via their `Configured` control.\n",
+        "flags": [
+          "transientStorage"
+        ],
+        "container": {
+          "type": "tmod:@turbot/turbot#/container/types/factory"
+        }
+      },
+      "budget": {
+        "title": "Budget",
+        "icon": "fal-coins",
+        "parent": "#/resource/types/budget",
+        "targets": [
+          "#/resource/types/account"
+        ],
+        "category": "turbot#/control/categories/other",
+        "description": "Determine whether budget reporting is enabled for the AWS Account.\n\nIf enabled, the Budget control will gather cost data\nfrom the cloud provider, and will alarm if the\nBudget > State reaches the configured threshold.\n",
+        "defaultInterval": {
+          "hours": 6
+        },
+        "function": {
+          "src": "functions/budget/budget",
+          "bundle": "functions/budget/budget/dist/index.zip",
+          "memory": 512,
+          "hash": "85fcb33f75"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "accountId": {
+      "type": "string",
+      "pattern": "^[0-9]{12}$",
+      "tests": [
+        {
+          "description": "valid int - 123456789012",
+          "input": 123456789012
+        },
+        {
+          "description": "valid string - 123456789012",
+          "input": "123456789012"
+        },
+        {
+          "description": "valid - leading zeros",
+          "input": "001234567890"
+        },
+        {
+          "description": "invalid - contains char",
+          "input": "a123456789012",
+          "expected": false
+        },
+        {
+          "description": "invalid - too short",
+          "input": 12345678901,
+          "expected": false
+        },
+        {
+          "description": "invalid - too long",
+          "input": 1234567890123,
+          "expected": false
+        }
+      ]
+    },
+    "accountAka": {
+      "type": "string",
+      "pattern": "^arn:aws(-us-gov|-cn)?:::\\d{12}$",
+      "tests": [
+        {
+          "description": "base case - commercial cloud",
+          "input": "arn:aws:::123456789012"
+        },
+        {
+          "description": "base case - us gov cloud",
+          "input": "arn:aws-us-gov:::123456789012"
+        },
+        {
+          "description": "base case - china cloud",
+          "input": "arn:aws-cn:::123456789012"
+        },
+        {
+          "description": "invalid - account ID too long",
+          "input": "arn:aws:::1234567890123",
+          "expected": false
+        }
+      ]
+    },
+    "joinedMethod": {
+      "type": "string",
+      "enum": [
+        "INVITED",
+        "CREATED"
+      ],
+      "tests": [
+        {
+          "description": "base case",
+          "input": "INVITED"
+        },
+        {
+          "description": "base case",
+          "input": "CREATED"
+        },
+        {
+          "description": "invalid value",
+          "input": "TESTED",
+          "expected": false
+        },
+        {
+          "description": "invalid - adding array with value",
+          "input": "CREATED[2]",
+          "expected": false
+        }
+      ]
+    },
+    "accountName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 50,
+      "tests": [
+        {
+          "description": "base case",
+          "input": "my account"
+        },
+        {
+          "description": "invalid - too long",
+          "input": "abcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdea",
+          "expected": false
+        },
+        {
+          "description": "invalid - too short",
+          "input": "",
+          "expected": false
+        }
+      ]
+    },
+    "accountStatus": {
+      "type": "string",
+      "enum": [
+        "ACTIVE",
+        "SUSPENDED"
+      ],
+      "tests": [
+        {
+          "description": "base case",
+          "input": "ACTIVE"
+        },
+        {
+          "description": "invalid - incorrect value",
+          "input": 12555,
+          "expected": false
+        }
+      ]
+    },
+    "organization": {
+      "type": "object",
+      "properties": {
+        "Arn": {
+          "$ref": "#/definitions/organizationArn"
+        },
+        "Id": {
+          "$ref": "#/definitions/organizationId"
+        },
+        "AvailablePolicyType": {
+          "$ref": "#/definitions/availablePolicyTypes"
+        },
+        "FeatureSet": {
+          "$ref": "#/definitions/featureSet"
+        },
+        "MasterAccountArn": {
+          "$ref": "#/definitions/masterAccountArn"
+        },
+        "MasterAccountEmail": {
+          "$ref": "turbot#/definitions/email"
+        },
+        "MasterAccountId": {
+          "$ref": "aws#/definitions/accountId"
+        },
+        "turbot": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "$ref": "#/definitions/organizationId"
+            },
+            "custom": {
+              "type": "object",
+              "properties": {
+                "aws": {
+                  "$ref": "#/definitions/awsMetadata"
+                }
+              }
+            }
+          }
+        }
+      },
+      "required": [
+        "Arn",
+        "Id",
+        "turbot"
+      ],
+      "additionalProperties": true,
+      "tests": [
+        {
+          "description": "base case",
+          "input": {
+            "Arn": "arn:aws:organizations::111111111111:organization/o-exampleorgid",
+            "Id": "o-abcde12345",
+            "turbot": {
+              "title": "o-abcde12345",
+              "custom": {
+                "aws": {
+                  "organizationId": "o-abcde12345"
+                }
+              }
+            }
+          }
+        },
+        {
+          "description": "base case - additional fields added",
+          "input": {
+            "Arn": "arn:aws:organizations::111111111111:organization/o-exampleorgid",
+            "Id": "o-abcde12345",
+            "MasterAccountArn": "arn:aws:organizations::111111111111:account/o-exampleorgid/111111111111",
+            "MasterAccountEmail": "test@test.com",
+            "MasterAccountId": 123456789876,
+            "FeatureSet": "ALL",
+            "turbot": {
+              "title": "o-abcde12345",
+              "custom": {
+                "aws": {
+                  "organizationId": "o-abcde12345"
+                }
+              }
+            }
+          }
+        },
+        {
+          "description": "invalid - no turbot data provided",
+          "input": {
+            "Arn": "arn:aws:organizations::111111111111:organization/o-exampleorgid",
+            "Id": "o-abcde12345",
+            "MasterAccountEmail": "test@test.com",
+            "MasterAccountId": 123456789876,
+            "FeatureSet": "CONSOLIDATED_BILLING"
+          },
+          "expected": false
+        }
+      ]
+    },
+    "account": {
+      "type": "object",
+      "properties": {
+        "Arn": {
+          "$ref": "#/definitions/masterAccountArn"
+        },
+        "Email": {
+          "$ref": "turbot#/definitions/email"
+        },
+        "Id": {
+          "$ref": "#/definitions/accountId"
+        },
+        "JoinedMethod": {
+          "$ref": "#/definitions/joinedMethod"
+        },
+        "JoinedStatus": {
+          "$ref": "turbot#/definitions/isoTimestamp"
+        },
+        "Name": {
+          "$ref": "#/definitions/accountName"
+        },
+        "Status": {
+          "$ref": "#/definitions/accountStatus"
+        },
+        "Organization": {
+          "$ref": "#/definitions/organization"
+        },
+        "turbot": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string"
+            },
+            "akas": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/accountAka"
+              }
+            },
+            "custom": {
+              "type": "object",
+              "properties": {
+                "aws": {
+                  "$ref": "#/definitions/awsMetadata"
+                }
+              }
+            }
+          }
+        }
+      },
+      "additionalProperties": true,
+      "tests": [
+        {
+          "description": "valid - base case",
+          "input": {
+            "Id": 123456789012,
+            "turbot": {
+              "title": 123456789012,
+              "akas": [
+                "arn:aws:::123456789012"
+              ],
+              "custom": {
+                "aws": {
+                  "accountId": 123456789012
+                }
+              }
+            }
+          }
+        },
+        {
+          "description": "invalid - account ID",
+          "input": {
+            "turbot": {
+              "Id": 1234567890121212,
+              "akas": [
+                "arn:aws:::1234567890121212"
+              ],
+              "custom": {
+                "aws": {
+                  "accountId": 1234567890121212
+                }
+              }
+            }
+          },
+          "expected": false
+        }
+      ]
+    },
+    "isoTimestamp8601+-hh:mm": {
+      "description": "Datetime represented in ISO-8601 format",
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}$",
+      "tests": [
+        {
+          "input": "1997-07-16T19:20:30+01:00"
+        },
+        {
+          "input": "1997-07-16T19:20:30+05:30"
+        },
+        {
+          "input": "1997-07-16T19:20:30-05:30"
+        },
+        {
+          "description": "invalid - pattern",
+          "input": "1997-07-16T19:20:30+0100",
+          "expected": false
+        },
+        {
+          "description": "invalid - timezone is in incorrect format",
+          "input": "1997-07-16T19:20:30+05",
+          "expected": false
+        }
+      ]
+    },
+    "isoTimestamp8601+-hhmm": {
+      "description": "Datetime represented in ISO-8601 format",
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{4}$",
+      "tests": [
+        {
+          "input": "1997-07-16T19:20:30+0100"
+        },
+        {
+          "input": "1997-07-16T19:20:30-0100"
+        },
+        {
+          "description": "invalid - timezone is in incorrect format",
+          "input": "1997-07-16T19:20:30+05",
+          "expected": false
+        }
+      ]
+    },
+    "isoTimestamp8601+-hh": {
+      "description": "Datetime represented in ISO-8601 format",
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}$",
+      "tests": [
+        {
+          "input": "1997-07-16T19:20:30+01"
+        },
+        {
+          "input": "1997-07-16T19:20:30-01"
+        },
+        {
+          "description": "invalid - timezone is in incorrect format",
+          "input": "1997-07-16T19:20:30-01:00",
+          "expected": false
+        }
+      ]
+    },
+    "awsMetadata": {
+      "type": "object",
+      "properties": {
+        "organizationId": {
+          "$ref": "#/definitions/organizationId"
+        },
+        "accountId": {
+          "$ref": "#/definitions/accountId"
+        },
+        "regionName": {
+          "$ref": "#/definitions/regionName"
+        },
+        "partition": {
+          "$ref": "#/definitions/awsPartitionType"
+        }
+      },
+      "additionalProperties": false,
+      "tests": [
+        {
+          "description": "Valid - all properties given",
+          "input": {
+            "organizationId": "o-abcde12345",
+            "accountId": "123456789012",
+            "regionName": "us-east-1"
+          }
+        }
+      ]
+    },
+    "awsPartitionType": {
+      "type": "string",
+      "enum": [
+        "aws",
+        "aws-us-gov",
+        "aws-cn"
+      ],
+      "tests": [
+        {
+          "input": "aws"
+        },
+        {
+          "input": "aws-us-gov"
+        },
+        {
+          "description": "invalid - not a partition type",
+          "input": "aws-india",
+          "expected": false
+        }
+      ]
+    },
+    "tagString": {
+      "type": "string",
+      "pattern": "^[-+=\\._@:/\\sA-Za-z0-9\\u00AA\\u00B5\\u00BA\\u00C0-\\u00D6\\u00D8-\\u00F6\\u00F8-\\u02C1\\u02C6-\\u02D1\\u02E0-\\u02E4\\u02EC\\u02EE\\u0370-\\u0374\\u0376\\u0377\\u037A-\\u037D\\u037F\\u0386\\u0388-\\u038A\\u038C\\u038E-\\u03A1\\u03A3-\\u03F5\\u03F7-\\u0481\\u048A-\\u052F\\u0531-\\u0556\\u0559\\u0561-\\u0587\\u05D0-\\u05EA\\u05F0-\\u05F2\\u0620-\\u064A\\u066E\\u066F\\u0671-\\u06D3\\u06D5\\u06E5\\u06E6\\u06EE\\u06EF\\u06FA-\\u06FC\\u06FF\\u0710\\u0712-\\u072F\\u074D-\\u07A5\\u07B1\\u07CA-\\u07EA\\u07F4\\u07F5\\u07FA\\u0800-\\u0815\\u081A\\u0824\\u0828\\u0840-\\u0858\\u08A0-\\u08B4\\u0904-\\u0939\\u093D\\u0950\\u0958-\\u0961\\u0971-\\u0980\\u0985-\\u098C\\u098F\\u0990\\u0993-\\u09A8\\u09AA-\\u09B0\\u09B2\\u09B6-\\u09B9\\u09BD\\u09CE\\u09DC\\u09DD\\u09DF-\\u09E1\\u09F0\\u09F1\\u0A05-\\u0A0A\\u0A0F\\u0A10\\u0A13-\\u0A28\\u0A2A-\\u0A30\\u0A32\\u0A33\\u0A35\\u0A36\\u0A38\\u0A39\\u0A59-\\u0A5C\\u0A5E\\u0A72-\\u0A74\\u0A85-\\u0A8D\\u0A8F-\\u0A91\\u0A93-\\u0AA8\\u0AAA-\\u0AB0\\u0AB2\\u0AB3\\u0AB5-\\u0AB9\\u0ABD\\u0AD0\\u0AE0\\u0AE1\\u0AF9\\u0B05-\\u0B0C\\u0B0F\\u0B10\\u0B13-\\u0B28\\u0B2A-\\u0B30\\u0B32\\u0B33\\u0B35-\\u0B39\\u0B3D\\u0B5C\\u0B5D\\u0B5F-\\u0B61\\u0B71\\u0B83\\u0B85-\\u0B8A\\u0B8E-\\u0B90\\u0B92-\\u0B95\\u0B99\\u0B9A\\u0B9C\\u0B9E\\u0B9F\\u0BA3\\u0BA4\\u0BA8-\\u0BAA\\u0BAE-\\u0BB9\\u0BD0\\u0C05-\\u0C0C\\u0C0E-\\u0C10\\u0C12-\\u0C28\\u0C2A-\\u0C39\\u0C3D\\u0C58-\\u0C5A\\u0C60\\u0C61\\u0C85-\\u0C8C\\u0C8E-\\u0C90\\u0C92-\\u0CA8\\u0CAA-\\u0CB3\\u0CB5-\\u0CB9\\u0CBD\\u0CDE\\u0CE0\\u0CE1\\u0CF1\\u0CF2\\u0D05-\\u0D0C\\u0D0E-\\u0D10\\u0D12-\\u0D3A\\u0D3D\\u0D4E\\u0D5F-\\u0D61\\u0D7A-\\u0D7F\\u0D85-\\u0D96\\u0D9A-\\u0DB1\\u0DB3-\\u0DBB\\u0DBD\\u0DC0-\\u0DC6\\u0E01-\\u0E30\\u0E32\\u0E33\\u0E40-\\u0E46\\u0E81\\u0E82\\u0E84\\u0E87\\u0E88\\u0E8A\\u0E8D\\u0E94-\\u0E97\\u0E99-\\u0E9F\\u0EA1-\\u0EA3\\u0EA5\\u0EA7\\u0EAA\\u0EAB\\u0EAD-\\u0EB0\\u0EB2\\u0EB3\\u0EBD\\u0EC0-\\u0EC4\\u0EC6\\u0EDC-\\u0EDF\\u0F00\\u0F40-\\u0F47\\u0F49-\\u0F6C\\u0F88-\\u0F8C\\u1000-\\u102A\\u103F\\u1050-\\u1055\\u105A-\\u105D\\u1061\\u1065\\u1066\\u106E-\\u1070\\u1075-\\u1081\\u108E\\u10A0-\\u10C5\\u10C7\\u10CD\\u10D0-\\u10FA\\u10FC-\\u1248\\u124A-\\u124D\\u1250-\\u1256\\u1258\\u125A-\\u125D\\u1260-\\u1288\\u128A-\\u128D\\u1290-\\u12B0\\u12B2-\\u12B5\\u12B8-\\u12BE\\u12C0\\u12C2-\\u12C5\\u12C8-\\u12D6\\u12D8-\\u1310\\u1312-\\u1315\\u1318-\\u135A\\u1380-\\u138F\\u13A0-\\u13F5\\u13F8-\\u13FD\\u1401-\\u166C\\u166F-\\u167F\\u1681-\\u169A\\u16A0-\\u16EA\\u16F1-\\u16F8\\u1700-\\u170C\\u170E-\\u1711\\u1720-\\u1731\\u1740-\\u1751\\u1760-\\u176C\\u176E-\\u1770\\u1780-\\u17B3\\u17D7\\u17DC\\u1820-\\u1877\\u1880-\\u18A8\\u18AA\\u18B0-\\u18F5\\u1900-\\u191E\\u1950-\\u196D\\u1970-\\u1974\\u1980-\\u19AB\\u19B0-\\u19C9\\u1A00-\\u1A16\\u1A20-\\u1A54\\u1AA7\\u1B05-\\u1B33\\u1B45-\\u1B4B\\u1B83-\\u1BA0\\u1BAE\\u1BAF\\u1BBA-\\u1BE5\\u1C00-\\u1C23\\u1C4D-\\u1C4F\\u1C5A-\\u1C7D\\u1CE9-\\u1CEC\\u1CEE-\\u1CF1\\u1CF5\\u1CF6\\u1D00-\\u1DBF\\u1E00-\\u1F15\\u1F18-\\u1F1D\\u1F20-\\u1F45\\u1F48-\\u1F4D\\u1F50-\\u1F57\\u1F59\\u1F5B\\u1F5D\\u1F5F-\\u1F7D\\u1F80-\\u1FB4\\u1FB6-\\u1FBC\\u1FBE\\u1FC2-\\u1FC4\\u1FC6-\\u1FCC\\u1FD0-\\u1FD3\\u1FD6-\\u1FDB\\u1FE0-\\u1FEC\\u1FF2-\\u1FF4\\u1FF6-\\u1FFC\\u2071\\u207F\\u2090-\\u209C\\u2102\\u2107\\u210A-\\u2113\\u2115\\u2119-\\u211D\\u2124\\u2126\\u2128\\u212A-\\u212D\\u212F-\\u2139\\u213C-\\u213F\\u2145-\\u2149\\u214E\\u2183\\u2184\\u2C00-\\u2C2E\\u2C30-\\u2C5E\\u2C60-\\u2CE4\\u2CEB-\\u2CEE\\u2CF2\\u2CF3\\u2D00-\\u2D25\\u2D27\\u2D2D\\u2D30-\\u2D67\\u2D6F\\u2D80-\\u2D96\\u2DA0-\\u2DA6\\u2DA8-\\u2DAE\\u2DB0-\\u2DB6\\u2DB8-\\u2DBE\\u2DC0-\\u2DC6\\u2DC8-\\u2DCE\\u2DD0-\\u2DD6\\u2DD8-\\u2DDE\\u2E2F\\u3005\\u3006\\u3031-\\u3035\\u303B\\u303C\\u3041-\\u3096\\u309D-\\u309F\\u30A1-\\u30FA\\u30FC-\\u30FF\\u3105-\\u312D\\u3131-\\u318E\\u31A0-\\u31BA\\u31F0-\\u31FF\\u3400-\\u4DB5\\u4E00-\\u9FD5\\uA000-\\uA48C\\uA4D0-\\uA4FD\\uA500-\\uA60C\\uA610-\\uA61F\\uA62A\\uA62B\\uA640-\\uA66E\\uA67F-\\uA69D\\uA6A0-\\uA6E5\\uA717-\\uA71F\\uA722-\\uA788\\uA78B-\\uA7AD\\uA7B0-\\uA7B7\\uA7F7-\\uA801\\uA803-\\uA805\\uA807-\\uA80A\\uA80C-\\uA822\\uA840-\\uA873\\uA882-\\uA8B3\\uA8F2-\\uA8F7\\uA8FB\\uA8FD\\uA90A-\\uA925\\uA930-\\uA946\\uA960-\\uA97C\\uA984-\\uA9B2\\uA9CF\\uA9E0-\\uA9E4\\uA9E6-\\uA9EF\\uA9FA-\\uA9FE\\uAA00-\\uAA28\\uAA40-\\uAA42\\uAA44-\\uAA4B\\uAA60-\\uAA76\\uAA7A\\uAA7E-\\uAAAF\\uAAB1\\uAAB5\\uAAB6\\uAAB9-\\uAABD\\uAAC0\\uAAC2\\uAADB-\\uAADD\\uAAE0-\\uAAEA\\uAAF2-\\uAAF4\\uAB01-\\uAB06\\uAB09-\\uAB0E\\uAB11-\\uAB16\\uAB20-\\uAB26\\uAB28-\\uAB2E\\uAB30-\\uAB5A\\uAB5C-\\uAB65\\uAB70-\\uABE2\\uAC00-\\uD7A3\\uD7B0-\\uD7C6\\uD7CB-\\uD7FB\\uF900-\\uFA6D\\uFA70-\\uFAD9\\uFB00-\\uFB06\\uFB13-\\uFB17\\uFB1D\\uFB1F-\\uFB28\\uFB2A-\\uFB36\\uFB38-\\uFB3C\\uFB3E\\uFB40\\uFB41\\uFB43\\uFB44\\uFB46-\\uFBB1\\uFBD3-\\uFD3D\\uFD50-\\uFD8F\\uFD92-\\uFDC7\\uFDF0-\\uFDFB\\uFE70-\\uFE74\\uFE76-\\uFEFC\\uFF21-\\uFF3A\\uFF41-\\uFF5A\\uFF66-\\uFFBE\\uFFC2-\\uFFC7\\uFFCA-\\uFFCF\\uFFD2-\\uFFD7\\uFFDA-\\uFFDC\\u0660-\\u0669\\u06F0-\\u06F9\\u07C0-\\u07C9\\u0966-\\u096F\\u09E6-\\u09EF\\u0A66-\\u0A6F\\u0AE6-\\u0AEF\\u0B66-\\u0B6F\\u0BE6-\\u0BEF\\u0C66-\\u0C6F\\u0CE6-\\u0CEF\\u0D66-\\u0D6F\\u0DE6-\\u0DEF\\u0E50-\\u0E59\\u0ED0-\\u0ED9\\u0F20-\\u0F29\\u1040-\\u1049\\u1090-\\u1099\\u17E0-\\u17E9\\u1810-\\u1819\\u1946-\\u194F\\u19D0-\\u19D9\\u1A80-\\u1A89\\u1A90-\\u1A99\\u1B50-\\u1B59\\u1BB0-\\u1BB9\\u1C40-\\u1C49\\u1C50-\\u1C59\\uA620-\\uA629\\uA8D0-\\uA8D9\\uA900-\\uA909\\uA9D0-\\uA9D9\\uA9F0-\\uA9F9\\uAA50-\\uAA59\\uABF0-\\uABF9\\uFF10-\\uFF19]*$",
+      "tests": [
+        {
+          "input": "küßî"
+        },
+        {
+          "input": "Peter Dinklage as Tyrion Lannister"
+        },
+        {
+          "input": "Filip Lozić as Young Nobleman"
+        },
+        {
+          "description": "invalid - includes $",
+          "input": "$56",
+          "expected": false
+        }
+      ]
+    },
+    "tagKey": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/tagString"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      ],
+      "tests": [
+        {
+          "description": "valid - min length",
+          "input": "a"
+        },
+        {
+          "description": "valid - max length",
+          "input": "123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 12345678"
+        },
+        {
+          "description": "invalid - empty string",
+          "input": "",
+          "expected": false
+        },
+        {
+          "description": "invalid - too long",
+          "input": "123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789",
+          "expected": false
+        }
+      ]
+    },
+    "tagValue": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/tagString"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 256
+        }
+      ],
+      "tests": [
+        {
+          "description": "valid - empty string",
+          "input": ""
+        },
+        {
+          "description": "valid - max length",
+          "input": "123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456"
+        },
+        {
+          "description": "invalid - too long",
+          "input": "123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 1234567",
+          "expected": false
+        }
+      ]
+    },
+    "tag": {
+      "type": "object",
+      "properties": {
+        "Key": {
+          "$ref": "#/definitions/tagKey"
+        },
+        "Value": {
+          "$ref": "#/definitions/tagValue"
+        }
+      },
+      "required": [
+        "Key",
+        "Value"
+      ],
+      "tests": [
+        {
+          "description": "valid - base case",
+          "input": {
+            "Key": "foo",
+            "Value": "bar"
+          }
+        },
+        {
+          "description": "invalid - empty key",
+          "input": {
+            "Key": "",
+            "Value": "bar"
+          },
+          "expected": false
+        },
+        {
+          "description": "invalid - no key",
+          "input": {
+            "Value": "bar"
+          },
+          "expected": false
+        },
+        {
+          "description": "invalid - no value",
+          "input": {
+            "Key": "foo"
+          },
+          "expected": false
+        }
+      ]
+    },
+    "tagList": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/tag"
+      },
+      "minLength": 0,
+      "tests": [
+        {
+          "description": "valid - empty list",
+          "input": []
+        },
+        {
+          "description": "valid - single item",
+          "input": [
+            {
+              "Key": "foo",
+              "Value": "bar"
+            }
+          ]
+        },
+        {
+          "description": "valid - multiple items",
+          "input": [
+            {
+              "Key": "one",
+              "Value": 1
+            },
+            {
+              "Key": "two",
+              "Value": 2
+            },
+            {
+              "Key": "three",
+              "Value": 3
+            },
+            {
+              "Key": "four",
+              "Value": 4
+            }
+          ]
+        },
+        {
+          "description": "invalid - missing value",
+          "input": [
+            {
+              "Key": "one"
+            },
+            {
+              "Key": "two",
+              "Value": 2
+            }
+          ],
+          "expected": false
+        },
+        {
+          "description": "invalid - empty item",
+          "input": [
+            {
+              "Key": "one",
+              "Value": 1
+            },
+            null,
+            {
+              "Key": "two",
+              "Value": 2
+            }
+          ],
+          "expected": false
+        }
+      ]
+    },
+    "tagsMap": {
+      "type": "object",
+      "patternProperties": {
+        "^[-+=\\._:@/\\sA-Za-z0-9\\u00AA\\u00B5\\u00BA\\u00C0-\\u00D6\\u00D8-\\u00F6\\u00F8-\\u02C1\\u02C6-\\u02D1\\u02E0-\\u02E4\\u02EC\\u02EE\\u0370-\\u0374\\u0376\\u0377\\u037A-\\u037D\\u037F\\u0386\\u0388-\\u038A\\u038C\\u038E-\\u03A1\\u03A3-\\u03F5\\u03F7-\\u0481\\u048A-\\u052F\\u0531-\\u0556\\u0559\\u0561-\\u0587\\u05D0-\\u05EA\\u05F0-\\u05F2\\u0620-\\u064A\\u066E\\u066F\\u0671-\\u06D3\\u06D5\\u06E5\\u06E6\\u06EE\\u06EF\\u06FA-\\u06FC\\u06FF\\u0710\\u0712-\\u072F\\u074D-\\u07A5\\u07B1\\u07CA-\\u07EA\\u07F4\\u07F5\\u07FA\\u0800-\\u0815\\u081A\\u0824\\u0828\\u0840-\\u0858\\u08A0-\\u08B4\\u0904-\\u0939\\u093D\\u0950\\u0958-\\u0961\\u0971-\\u0980\\u0985-\\u098C\\u098F\\u0990\\u0993-\\u09A8\\u09AA-\\u09B0\\u09B2\\u09B6-\\u09B9\\u09BD\\u09CE\\u09DC\\u09DD\\u09DF-\\u09E1\\u09F0\\u09F1\\u0A05-\\u0A0A\\u0A0F\\u0A10\\u0A13-\\u0A28\\u0A2A-\\u0A30\\u0A32\\u0A33\\u0A35\\u0A36\\u0A38\\u0A39\\u0A59-\\u0A5C\\u0A5E\\u0A72-\\u0A74\\u0A85-\\u0A8D\\u0A8F-\\u0A91\\u0A93-\\u0AA8\\u0AAA-\\u0AB0\\u0AB2\\u0AB3\\u0AB5-\\u0AB9\\u0ABD\\u0AD0\\u0AE0\\u0AE1\\u0AF9\\u0B05-\\u0B0C\\u0B0F\\u0B10\\u0B13-\\u0B28\\u0B2A-\\u0B30\\u0B32\\u0B33\\u0B35-\\u0B39\\u0B3D\\u0B5C\\u0B5D\\u0B5F-\\u0B61\\u0B71\\u0B83\\u0B85-\\u0B8A\\u0B8E-\\u0B90\\u0B92-\\u0B95\\u0B99\\u0B9A\\u0B9C\\u0B9E\\u0B9F\\u0BA3\\u0BA4\\u0BA8-\\u0BAA\\u0BAE-\\u0BB9\\u0BD0\\u0C05-\\u0C0C\\u0C0E-\\u0C10\\u0C12-\\u0C28\\u0C2A-\\u0C39\\u0C3D\\u0C58-\\u0C5A\\u0C60\\u0C61\\u0C85-\\u0C8C\\u0C8E-\\u0C90\\u0C92-\\u0CA8\\u0CAA-\\u0CB3\\u0CB5-\\u0CB9\\u0CBD\\u0CDE\\u0CE0\\u0CE1\\u0CF1\\u0CF2\\u0D05-\\u0D0C\\u0D0E-\\u0D10\\u0D12-\\u0D3A\\u0D3D\\u0D4E\\u0D5F-\\u0D61\\u0D7A-\\u0D7F\\u0D85-\\u0D96\\u0D9A-\\u0DB1\\u0DB3-\\u0DBB\\u0DBD\\u0DC0-\\u0DC6\\u0E01-\\u0E30\\u0E32\\u0E33\\u0E40-\\u0E46\\u0E81\\u0E82\\u0E84\\u0E87\\u0E88\\u0E8A\\u0E8D\\u0E94-\\u0E97\\u0E99-\\u0E9F\\u0EA1-\\u0EA3\\u0EA5\\u0EA7\\u0EAA\\u0EAB\\u0EAD-\\u0EB0\\u0EB2\\u0EB3\\u0EBD\\u0EC0-\\u0EC4\\u0EC6\\u0EDC-\\u0EDF\\u0F00\\u0F40-\\u0F47\\u0F49-\\u0F6C\\u0F88-\\u0F8C\\u1000-\\u102A\\u103F\\u1050-\\u1055\\u105A-\\u105D\\u1061\\u1065\\u1066\\u106E-\\u1070\\u1075-\\u1081\\u108E\\u10A0-\\u10C5\\u10C7\\u10CD\\u10D0-\\u10FA\\u10FC-\\u1248\\u124A-\\u124D\\u1250-\\u1256\\u1258\\u125A-\\u125D\\u1260-\\u1288\\u128A-\\u128D\\u1290-\\u12B0\\u12B2-\\u12B5\\u12B8-\\u12BE\\u12C0\\u12C2-\\u12C5\\u12C8-\\u12D6\\u12D8-\\u1310\\u1312-\\u1315\\u1318-\\u135A\\u1380-\\u138F\\u13A0-\\u13F5\\u13F8-\\u13FD\\u1401-\\u166C\\u166F-\\u167F\\u1681-\\u169A\\u16A0-\\u16EA\\u16F1-\\u16F8\\u1700-\\u170C\\u170E-\\u1711\\u1720-\\u1731\\u1740-\\u1751\\u1760-\\u176C\\u176E-\\u1770\\u1780-\\u17B3\\u17D7\\u17DC\\u1820-\\u1877\\u1880-\\u18A8\\u18AA\\u18B0-\\u18F5\\u1900-\\u191E\\u1950-\\u196D\\u1970-\\u1974\\u1980-\\u19AB\\u19B0-\\u19C9\\u1A00-\\u1A16\\u1A20-\\u1A54\\u1AA7\\u1B05-\\u1B33\\u1B45-\\u1B4B\\u1B83-\\u1BA0\\u1BAE\\u1BAF\\u1BBA-\\u1BE5\\u1C00-\\u1C23\\u1C4D-\\u1C4F\\u1C5A-\\u1C7D\\u1CE9-\\u1CEC\\u1CEE-\\u1CF1\\u1CF5\\u1CF6\\u1D00-\\u1DBF\\u1E00-\\u1F15\\u1F18-\\u1F1D\\u1F20-\\u1F45\\u1F48-\\u1F4D\\u1F50-\\u1F57\\u1F59\\u1F5B\\u1F5D\\u1F5F-\\u1F7D\\u1F80-\\u1FB4\\u1FB6-\\u1FBC\\u1FBE\\u1FC2-\\u1FC4\\u1FC6-\\u1FCC\\u1FD0-\\u1FD3\\u1FD6-\\u1FDB\\u1FE0-\\u1FEC\\u1FF2-\\u1FF4\\u1FF6-\\u1FFC\\u2071\\u207F\\u2090-\\u209C\\u2102\\u2107\\u210A-\\u2113\\u2115\\u2119-\\u211D\\u2124\\u2126\\u2128\\u212A-\\u212D\\u212F-\\u2139\\u213C-\\u213F\\u2145-\\u2149\\u214E\\u2183\\u2184\\u2C00-\\u2C2E\\u2C30-\\u2C5E\\u2C60-\\u2CE4\\u2CEB-\\u2CEE\\u2CF2\\u2CF3\\u2D00-\\u2D25\\u2D27\\u2D2D\\u2D30-\\u2D67\\u2D6F\\u2D80-\\u2D96\\u2DA0-\\u2DA6\\u2DA8-\\u2DAE\\u2DB0-\\u2DB6\\u2DB8-\\u2DBE\\u2DC0-\\u2DC6\\u2DC8-\\u2DCE\\u2DD0-\\u2DD6\\u2DD8-\\u2DDE\\u2E2F\\u3005\\u3006\\u3031-\\u3035\\u303B\\u303C\\u3041-\\u3096\\u309D-\\u309F\\u30A1-\\u30FA\\u30FC-\\u30FF\\u3105-\\u312D\\u3131-\\u318E\\u31A0-\\u31BA\\u31F0-\\u31FF\\u3400-\\u4DB5\\u4E00-\\u9FD5\\uA000-\\uA48C\\uA4D0-\\uA4FD\\uA500-\\uA60C\\uA610-\\uA61F\\uA62A\\uA62B\\uA640-\\uA66E\\uA67F-\\uA69D\\uA6A0-\\uA6E5\\uA717-\\uA71F\\uA722-\\uA788\\uA78B-\\uA7AD\\uA7B0-\\uA7B7\\uA7F7-\\uA801\\uA803-\\uA805\\uA807-\\uA80A\\uA80C-\\uA822\\uA840-\\uA873\\uA882-\\uA8B3\\uA8F2-\\uA8F7\\uA8FB\\uA8FD\\uA90A-\\uA925\\uA930-\\uA946\\uA960-\\uA97C\\uA984-\\uA9B2\\uA9CF\\uA9E0-\\uA9E4\\uA9E6-\\uA9EF\\uA9FA-\\uA9FE\\uAA00-\\uAA28\\uAA40-\\uAA42\\uAA44-\\uAA4B\\uAA60-\\uAA76\\uAA7A\\uAA7E-\\uAAAF\\uAAB1\\uAAB5\\uAAB6\\uAAB9-\\uAABD\\uAAC0\\uAAC2\\uAADB-\\uAADD\\uAAE0-\\uAAEA\\uAAF2-\\uAAF4\\uAB01-\\uAB06\\uAB09-\\uAB0E\\uAB11-\\uAB16\\uAB20-\\uAB26\\uAB28-\\uAB2E\\uAB30-\\uAB5A\\uAB5C-\\uAB65\\uAB70-\\uABE2\\uAC00-\\uD7A3\\uD7B0-\\uD7C6\\uD7CB-\\uD7FB\\uF900-\\uFA6D\\uFA70-\\uFAD9\\uFB00-\\uFB06\\uFB13-\\uFB17\\uFB1D\\uFB1F-\\uFB28\\uFB2A-\\uFB36\\uFB38-\\uFB3C\\uFB3E\\uFB40\\uFB41\\uFB43\\uFB44\\uFB46-\\uFBB1\\uFBD3-\\uFD3D\\uFD50-\\uFD8F\\uFD92-\\uFDC7\\uFDF0-\\uFDFB\\uFE70-\\uFE74\\uFE76-\\uFEFC\\uFF21-\\uFF3A\\uFF41-\\uFF5A\\uFF66-\\uFFBE\\uFFC2-\\uFFC7\\uFFCA-\\uFFCF\\uFFD2-\\uFFD7\\uFFDA-\\uFFDC\\u0660-\\u0669\\u06F0-\\u06F9\\u07C0-\\u07C9\\u0966-\\u096F\\u09E6-\\u09EF\\u0A66-\\u0A6F\\u0AE6-\\u0AEF\\u0B66-\\u0B6F\\u0BE6-\\u0BEF\\u0C66-\\u0C6F\\u0CE6-\\u0CEF\\u0D66-\\u0D6F\\u0DE6-\\u0DEF\\u0E50-\\u0E59\\u0ED0-\\u0ED9\\u0F20-\\u0F29\\u1040-\\u1049\\u1090-\\u1099\\u17E0-\\u17E9\\u1810-\\u1819\\u1946-\\u194F\\u19D0-\\u19D9\\u1A80-\\u1A89\\u1A90-\\u1A99\\u1B50-\\u1B59\\u1BB0-\\u1BB9\\u1C40-\\u1C49\\u1C50-\\u1C59\\uA620-\\uA629\\uA8D0-\\uA8D9\\uA900-\\uA909\\uA9D0-\\uA9D9\\uA9F0-\\uA9F9\\uAA50-\\uAA59\\uABF0-\\uABF9\\uFF10-\\uFF19]{1,128}$": {
+          "$ref": "#/definitions/tagValue"
+        }
+      },
+      "additionalProperties": false,
+      "tests": [
+        {
+          "description": "valid - base case",
+          "input": {
+            "foo": "bar"
+          }
+        },
+        {
+          "description": "valid - kitchen sink",
+          "input": {
+            "küßî123": "küßî123",
+            "test": ""
+          }
+        },
+        {
+          "description": "valid - key min length",
+          "input": {
+            "a": "bar"
+          }
+        },
+        {
+          "description": "invalid - empty key",
+          "input": {
+            "": "bar"
+          },
+          "expected": false
+        },
+        {
+          "description": "valid - key max length",
+          "input": {
+            "123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 12345678": "bar"
+          }
+        },
+        {
+          "description": "invalid - key too long",
+          "input": {
+            "123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789": "bar"
+          },
+          "expected": false
+        },
+        {
+          "description": "valid - empty",
+          "input": {}
+        },
+        {
+          "description": "invalid - $ in key",
+          "input": {
+            "$foo": "bar"
+          },
+          "expected": false
+        },
+        {
+          "description": "invalid - $ in value",
+          "input": {
+            "foo": "$bar"
+          },
+          "expected": false
+        }
+      ]
+    },
+    "tagsTemplateTagsMap": {
+      "type": "object",
+      "patternProperties": {
+        "^(?!aws:)[-+=\\._:@/\\sA-Za-z0-9\\u00AA\\u00B5\\u00BA\\u00C0-\\u00D6\\u00D8-\\u00F6\\u00F8-\\u02C1\\u02C6-\\u02D1\\u02E0-\\u02E4\\u02EC\\u02EE\\u0370-\\u0374\\u0376\\u0377\\u037A-\\u037D\\u037F\\u0386\\u0388-\\u038A\\u038C\\u038E-\\u03A1\\u03A3-\\u03F5\\u03F7-\\u0481\\u048A-\\u052F\\u0531-\\u0556\\u0559\\u0561-\\u0587\\u05D0-\\u05EA\\u05F0-\\u05F2\\u0620-\\u064A\\u066E\\u066F\\u0671-\\u06D3\\u06D5\\u06E5\\u06E6\\u06EE\\u06EF\\u06FA-\\u06FC\\u06FF\\u0710\\u0712-\\u072F\\u074D-\\u07A5\\u07B1\\u07CA-\\u07EA\\u07F4\\u07F5\\u07FA\\u0800-\\u0815\\u081A\\u0824\\u0828\\u0840-\\u0858\\u08A0-\\u08B4\\u0904-\\u0939\\u093D\\u0950\\u0958-\\u0961\\u0971-\\u0980\\u0985-\\u098C\\u098F\\u0990\\u0993-\\u09A8\\u09AA-\\u09B0\\u09B2\\u09B6-\\u09B9\\u09BD\\u09CE\\u09DC\\u09DD\\u09DF-\\u09E1\\u09F0\\u09F1\\u0A05-\\u0A0A\\u0A0F\\u0A10\\u0A13-\\u0A28\\u0A2A-\\u0A30\\u0A32\\u0A33\\u0A35\\u0A36\\u0A38\\u0A39\\u0A59-\\u0A5C\\u0A5E\\u0A72-\\u0A74\\u0A85-\\u0A8D\\u0A8F-\\u0A91\\u0A93-\\u0AA8\\u0AAA-\\u0AB0\\u0AB2\\u0AB3\\u0AB5-\\u0AB9\\u0ABD\\u0AD0\\u0AE0\\u0AE1\\u0AF9\\u0B05-\\u0B0C\\u0B0F\\u0B10\\u0B13-\\u0B28\\u0B2A-\\u0B30\\u0B32\\u0B33\\u0B35-\\u0B39\\u0B3D\\u0B5C\\u0B5D\\u0B5F-\\u0B61\\u0B71\\u0B83\\u0B85-\\u0B8A\\u0B8E-\\u0B90\\u0B92-\\u0B95\\u0B99\\u0B9A\\u0B9C\\u0B9E\\u0B9F\\u0BA3\\u0BA4\\u0BA8-\\u0BAA\\u0BAE-\\u0BB9\\u0BD0\\u0C05-\\u0C0C\\u0C0E-\\u0C10\\u0C12-\\u0C28\\u0C2A-\\u0C39\\u0C3D\\u0C58-\\u0C5A\\u0C60\\u0C61\\u0C85-\\u0C8C\\u0C8E-\\u0C90\\u0C92-\\u0CA8\\u0CAA-\\u0CB3\\u0CB5-\\u0CB9\\u0CBD\\u0CDE\\u0CE0\\u0CE1\\u0CF1\\u0CF2\\u0D05-\\u0D0C\\u0D0E-\\u0D10\\u0D12-\\u0D3A\\u0D3D\\u0D4E\\u0D5F-\\u0D61\\u0D7A-\\u0D7F\\u0D85-\\u0D96\\u0D9A-\\u0DB1\\u0DB3-\\u0DBB\\u0DBD\\u0DC0-\\u0DC6\\u0E01-\\u0E30\\u0E32\\u0E33\\u0E40-\\u0E46\\u0E81\\u0E82\\u0E84\\u0E87\\u0E88\\u0E8A\\u0E8D\\u0E94-\\u0E97\\u0E99-\\u0E9F\\u0EA1-\\u0EA3\\u0EA5\\u0EA7\\u0EAA\\u0EAB\\u0EAD-\\u0EB0\\u0EB2\\u0EB3\\u0EBD\\u0EC0-\\u0EC4\\u0EC6\\u0EDC-\\u0EDF\\u0F00\\u0F40-\\u0F47\\u0F49-\\u0F6C\\u0F88-\\u0F8C\\u1000-\\u102A\\u103F\\u1050-\\u1055\\u105A-\\u105D\\u1061\\u1065\\u1066\\u106E-\\u1070\\u1075-\\u1081\\u108E\\u10A0-\\u10C5\\u10C7\\u10CD\\u10D0-\\u10FA\\u10FC-\\u1248\\u124A-\\u124D\\u1250-\\u1256\\u1258\\u125A-\\u125D\\u1260-\\u1288\\u128A-\\u128D\\u1290-\\u12B0\\u12B2-\\u12B5\\u12B8-\\u12BE\\u12C0\\u12C2-\\u12C5\\u12C8-\\u12D6\\u12D8-\\u1310\\u1312-\\u1315\\u1318-\\u135A\\u1380-\\u138F\\u13A0-\\u13F5\\u13F8-\\u13FD\\u1401-\\u166C\\u166F-\\u167F\\u1681-\\u169A\\u16A0-\\u16EA\\u16F1-\\u16F8\\u1700-\\u170C\\u170E-\\u1711\\u1720-\\u1731\\u1740-\\u1751\\u1760-\\u176C\\u176E-\\u1770\\u1780-\\u17B3\\u17D7\\u17DC\\u1820-\\u1877\\u1880-\\u18A8\\u18AA\\u18B0-\\u18F5\\u1900-\\u191E\\u1950-\\u196D\\u1970-\\u1974\\u1980-\\u19AB\\u19B0-\\u19C9\\u1A00-\\u1A16\\u1A20-\\u1A54\\u1AA7\\u1B05-\\u1B33\\u1B45-\\u1B4B\\u1B83-\\u1BA0\\u1BAE\\u1BAF\\u1BBA-\\u1BE5\\u1C00-\\u1C23\\u1C4D-\\u1C4F\\u1C5A-\\u1C7D\\u1CE9-\\u1CEC\\u1CEE-\\u1CF1\\u1CF5\\u1CF6\\u1D00-\\u1DBF\\u1E00-\\u1F15\\u1F18-\\u1F1D\\u1F20-\\u1F45\\u1F48-\\u1F4D\\u1F50-\\u1F57\\u1F59\\u1F5B\\u1F5D\\u1F5F-\\u1F7D\\u1F80-\\u1FB4\\u1FB6-\\u1FBC\\u1FBE\\u1FC2-\\u1FC4\\u1FC6-\\u1FCC\\u1FD0-\\u1FD3\\u1FD6-\\u1FDB\\u1FE0-\\u1FEC\\u1FF2-\\u1FF4\\u1FF6-\\u1FFC\\u2071\\u207F\\u2090-\\u209C\\u2102\\u2107\\u210A-\\u2113\\u2115\\u2119-\\u211D\\u2124\\u2126\\u2128\\u212A-\\u212D\\u212F-\\u2139\\u213C-\\u213F\\u2145-\\u2149\\u214E\\u2183\\u2184\\u2C00-\\u2C2E\\u2C30-\\u2C5E\\u2C60-\\u2CE4\\u2CEB-\\u2CEE\\u2CF2\\u2CF3\\u2D00-\\u2D25\\u2D27\\u2D2D\\u2D30-\\u2D67\\u2D6F\\u2D80-\\u2D96\\u2DA0-\\u2DA6\\u2DA8-\\u2DAE\\u2DB0-\\u2DB6\\u2DB8-\\u2DBE\\u2DC0-\\u2DC6\\u2DC8-\\u2DCE\\u2DD0-\\u2DD6\\u2DD8-\\u2DDE\\u2E2F\\u3005\\u3006\\u3031-\\u3035\\u303B\\u303C\\u3041-\\u3096\\u309D-\\u309F\\u30A1-\\u30FA\\u30FC-\\u30FF\\u3105-\\u312D\\u3131-\\u318E\\u31A0-\\u31BA\\u31F0-\\u31FF\\u3400-\\u4DB5\\u4E00-\\u9FD5\\uA000-\\uA48C\\uA4D0-\\uA4FD\\uA500-\\uA60C\\uA610-\\uA61F\\uA62A\\uA62B\\uA640-\\uA66E\\uA67F-\\uA69D\\uA6A0-\\uA6E5\\uA717-\\uA71F\\uA722-\\uA788\\uA78B-\\uA7AD\\uA7B0-\\uA7B7\\uA7F7-\\uA801\\uA803-\\uA805\\uA807-\\uA80A\\uA80C-\\uA822\\uA840-\\uA873\\uA882-\\uA8B3\\uA8F2-\\uA8F7\\uA8FB\\uA8FD\\uA90A-\\uA925\\uA930-\\uA946\\uA960-\\uA97C\\uA984-\\uA9B2\\uA9CF\\uA9E0-\\uA9E4\\uA9E6-\\uA9EF\\uA9FA-\\uA9FE\\uAA00-\\uAA28\\uAA40-\\uAA42\\uAA44-\\uAA4B\\uAA60-\\uAA76\\uAA7A\\uAA7E-\\uAAAF\\uAAB1\\uAAB5\\uAAB6\\uAAB9-\\uAABD\\uAAC0\\uAAC2\\uAADB-\\uAADD\\uAAE0-\\uAAEA\\uAAF2-\\uAAF4\\uAB01-\\uAB06\\uAB09-\\uAB0E\\uAB11-\\uAB16\\uAB20-\\uAB26\\uAB28-\\uAB2E\\uAB30-\\uAB5A\\uAB5C-\\uAB65\\uAB70-\\uABE2\\uAC00-\\uD7A3\\uD7B0-\\uD7C6\\uD7CB-\\uD7FB\\uF900-\\uFA6D\\uFA70-\\uFAD9\\uFB00-\\uFB06\\uFB13-\\uFB17\\uFB1D\\uFB1F-\\uFB28\\uFB2A-\\uFB36\\uFB38-\\uFB3C\\uFB3E\\uFB40\\uFB41\\uFB43\\uFB44\\uFB46-\\uFBB1\\uFBD3-\\uFD3D\\uFD50-\\uFD8F\\uFD92-\\uFDC7\\uFDF0-\\uFDFB\\uFE70-\\uFE74\\uFE76-\\uFEFC\\uFF21-\\uFF3A\\uFF41-\\uFF5A\\uFF66-\\uFFBE\\uFFC2-\\uFFC7\\uFFCA-\\uFFCF\\uFFD2-\\uFFD7\\uFFDA-\\uFFDC\\u0660-\\u0669\\u06F0-\\u06F9\\u07C0-\\u07C9\\u0966-\\u096F\\u09E6-\\u09EF\\u0A66-\\u0A6F\\u0AE6-\\u0AEF\\u0B66-\\u0B6F\\u0BE6-\\u0BEF\\u0C66-\\u0C6F\\u0CE6-\\u0CEF\\u0D66-\\u0D6F\\u0DE6-\\u0DEF\\u0E50-\\u0E59\\u0ED0-\\u0ED9\\u0F20-\\u0F29\\u1040-\\u1049\\u1090-\\u1099\\u17E0-\\u17E9\\u1810-\\u1819\\u1946-\\u194F\\u19D0-\\u19D9\\u1A80-\\u1A89\\u1A90-\\u1A99\\u1B50-\\u1B59\\u1BB0-\\u1BB9\\u1C40-\\u1C49\\u1C50-\\u1C59\\uA620-\\uA629\\uA8D0-\\uA8D9\\uA900-\\uA909\\uA9D0-\\uA9D9\\uA9F0-\\uA9F9\\uAA50-\\uAA59\\uABF0-\\uABF9\\uFF10-\\uFF19]{1,128}$": {
+          "$ref": "#/definitions/tagValue"
+        }
+      },
+      "default": {},
+      "additionalProperties": false,
+      "tests": [
+        {
+          "description": "valid - base case",
+          "input": {
+            "foo": "bar"
+          }
+        },
+        {
+          "description": "valid - kitchen sink",
+          "input": {
+            "küßî123": "küßî123",
+            "test": ""
+          }
+        },
+        {
+          "description": "valid - key min length",
+          "input": {
+            "a": "bar"
+          }
+        },
+        {
+          "description": "invalid - empty key",
+          "input": {
+            "": "bar"
+          },
+          "expected": false
+        },
+        {
+          "description": "valid - key max length",
+          "input": {
+            "123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 12345678": "bar"
+          }
+        },
+        {
+          "description": "invalid - key too long",
+          "input": {
+            "123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789 123456789": "bar"
+          },
+          "expected": false
+        },
+        {
+          "description": "valid - empty",
+          "input": {}
+        },
+        {
+          "description": "invalid - $ in key",
+          "input": {
+            "$foo": "bar"
+          },
+          "expected": false
+        },
+        {
+          "description": "invalid - $ in value",
+          "input": {
+            "foo": "$bar"
+          },
+          "expected": false
+        },
+        {
+          "description": "invalid - starts with \"aws:\"",
+          "input": {
+            "aws:test": "bar"
+          },
+          "expected": false
+        }
+      ]
+    },
+    "tagsTemplateTag": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/tagsTemplateTagsMap"
+        },
+        {
+          "type": "object",
+          "minProperties": 1,
+          "maxProperties": 1
+        }
+      ],
+      "tests": [
+        {
+          "description": "valid - base case",
+          "input": {
+            "foo": "bar"
+          }
+        },
+        {
+          "description": "invalid - starts with \"aws:\"",
+          "input": {
+            "aws:test": "bar"
+          },
+          "expected": false
+        },
+        {
+          "description": "invalid - below min properties",
+          "input": {},
+          "expected": false
+        },
+        {
+          "description": "invalid - above max properties",
+          "input": {
+            "foo": "bar",
+            "foo1": "bar1"
+          },
+          "expected": false
+        }
+      ]
+    },
+    "tagsTemplateTagList": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/tagsTemplateTag"
+      },
+      "minLength": 0,
+      "tests": [
+        {
+          "description": "valid - empty list",
+          "input": []
+        },
+        {
+          "description": "valid - single item",
+          "input": [
+            {
+              "foo": "bar"
+            }
+          ]
+        },
+        {
+          "description": "valid - multiple items",
+          "input": [
+            {
+              "foo": "bar"
+            },
+            {
+              "foo1": "bar1"
+            },
+            {
+              "foo2": "bar2"
+            }
+          ]
+        },
+        {
+          "description": "invalid - empty item",
+          "input": [
+            {
+              "foo": "bar"
+            },
+            null,
+            {
+              "foo2": "bar2"
+            }
+          ],
+          "expected": false
+        }
+      ]
+    },
+    "tagsTemplateInput": {
+      "type": [
+        "array",
+        "object"
+      ],
+      "anyOf": [
+        {
+          "$ref": "#/definitions/tagsTemplateTagsMap"
+        },
+        {
+          "$ref": "#/definitions/tagsTemplateTagList"
+        }
+      ],
+      "tests": [
+        {
+          "description": "valid - empty list",
+          "input": []
+        },
+        {
+          "description": "valid - single item",
+          "input": [
+            {
+              "foo": "bar"
+            }
+          ]
+        },
+        {
+          "description": "valid - multiple items",
+          "input": [
+            {
+              "foo": "bar"
+            },
+            {
+              "foo1": "bar1"
+            },
+            {
+              "foo2": "bar2"
+            }
+          ]
+        },
+        {
+          "description": "invalid - empty item",
+          "input": [
+            {
+              "foo": "bar"
+            },
+            null,
+            {
+              "foo2": "bar2"
+            }
+          ],
+          "expected": false
+        },
+        {
+          "description": "invalid - at least one tag starts with aws:",
+          "input": [
+            {
+              "foo": "bar"
+            },
+            {
+              "foo1": "bar1"
+            },
+            {
+              "aws:foo2": "bar2"
+            }
+          ],
+          "expected": false
+        },
+        {
+          "description": "valid - empty object",
+          "input": {}
+        },
+        {
+          "description": "valid - single property",
+          "input": {
+            "foo": "bar"
+          }
+        },
+        {
+          "description": "valid - multiple properties",
+          "input": {
+            "foo": "bar",
+            "foo2": "bar2"
+          }
+        },
+        {
+          "description": "invalid - at least one key starts with aws:",
+          "input": {
+            "foo": "bar",
+            "aws:foo": "bar2"
+          },
+          "expected": false
+        },
+        {
+          "description": "invalid - wrong type",
+          "input": "hello",
+          "expected": false
+        }
+      ]
+    },
+    "cidrBlock": {
+      "description": "An IPv4 CIDR block.",
+      "type": "string",
+      "pattern": "^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}/[0-9]{1,2}$",
+      "tests": [
+        {
+          "description": "all zero octects and prefix.",
+          "input": "0.0.0.0/0"
+        },
+        {
+          "description": "invalid - missing first octect",
+          "input": "0.0.0/0",
+          "expected": false
+        },
+        {
+          "description": "invalid - missing prefix",
+          "input": "0.0.0.0/",
+          "expected": false
+        },
+        {
+          "description": "invalid - prefix too many digits",
+          "input": "0.0.0.0/123",
+          "expected": false
+        },
+        {
+          "description": "invalid - octect too many digits",
+          "input": "1234.0.0.0/0",
+          "expected": false
+        }
+      ]
+    },
+    "cidrArray": {
+      "description": "An array of IPv4 CIDR blocks.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/cidrBlock"
+      },
+      "tests": [
+        {
+          "description": "one cidr block provided",
+          "input": [
+            "0.0.0.0/0"
+          ]
+        },
+        {
+          "description": "two cidr blocks provided",
+          "input": [
+            "1.1.1.1/32",
+            "1.1.1.2/32"
+          ]
+        },
+        {
+          "description": "no cidr blocks provided",
+          "input": [],
+          "expected": false
+        }
+      ]
+    },
+    "ipv6CidrBlock": {
+      "type": "string",
+      "pattern": "^s*((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]d|1dd|[1-9]?d)(.(25[0-5]|2[0-4]d|1dd|[1-9]?d)){3}))|:)))(%.+)?s*(/([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8]))?$",
+      "tests": [
+        {
+          "input": "::/0"
+        },
+        {
+          "input": "2600:1f18:2368:f300::/56"
+        },
+        {
+          "input": "2001:db8:1234:1a00:3304:8879:34cf:4071"
+        },
+        {
+          "description": "invalid - ipv4 provided",
+          "input": "10.0.0.1/8",
+          "expected": false
+        }
+      ]
+    },
+    "isoTimestampNoTimeZone": {
+      "description": "Datetime represented in ISO 8601 format with no time zone designator.",
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}$",
+      "tests": [
+        {
+          "input": "2018-07-10T12:10:56.936"
+        },
+        {
+          "description": "invalid - timestamp with timezone",
+          "input": "2018-07-10T12:10:56.936Z",
+          "expected": false
+        }
+      ]
+    },
+    "isoTimestampUtcTimeZone": {
+      "description": "Datetime represented in ISO 8601 format with UTC time zone designator.",
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+      "tests": [
+        {
+          "input": "2018-07-10T12:10:56.936Z"
+        },
+        {
+          "description": "invalid - timestamp with no timezone",
+          "input": "2018-07-10T12:10:56.936",
+          "expected": false
+        }
+      ]
+    },
+    "ip4Address": {
+      "type": "string",
+      "pattern": "^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}$",
+      "tests": [
+        {
+          "description": "valid - ip4Address",
+          "input": "192.168.1.152"
+        },
+        {
+          "description": "valid - ip4Address1",
+          "input": "192.168.123.152"
+        },
+        {
+          "description": "invalid - too short",
+          "input": "192.168.1",
+          "expected": false
+        },
+        {
+          "description": "invalid - too long",
+          "input": "192.168.123.152.123",
+          "expected": false
+        }
+      ]
+    },
+    "eventPattern": {
+      "type": "object",
+      "properties": {
+        "detail": {
+          "type": "object",
+          "properties": {
+            "eventName": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "eventName"
+          ]
+        },
+        "detail-type": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "source": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "additionalProperties": false
+    },
+    "eventPatternList": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "pattern": {
+            "$ref": "#/definitions/eventPattern"
+          }
+        }
+      }
+    },
+    "featureSet": {
+      "type": "string",
+      "enum": [
+        "ALL",
+        "CONSOLIDATED_BILLING"
+      ],
+      "tests": [
+        {
+          "description": "valid - base case",
+          "input": "ALL"
+        },
+        {
+          "description": "invalid - invalid value",
+          "input": "FOO",
+          "expected": false
+        }
+      ]
+    },
+    "organizationId": {
+      "type": "string",
+      "pattern": "^o-[a-z0-9]{10,32}$",
+      "tests": [
+        {
+          "description": "valid string - o-abcde12345",
+          "input": "o-abcde12345"
+        },
+        {
+          "description": "valid string - o-12345abcdefgh",
+          "input": "o-12345abcdefgh"
+        },
+        {
+          "description": "valid - max length",
+          "input": "o-abc4567890abc4567890abc4567890ab"
+        },
+        {
+          "description": "invalid - does not start with o-",
+          "input": "abc123",
+          "expected": false
+        },
+        {
+          "description": "invalid - too short",
+          "input": "o-123456789",
+          "expected": false
+        },
+        {
+          "description": "invalid - too long",
+          "input": "o-abc4567890abc4567890abc4567890abc",
+          "expected": false
+        },
+        {
+          "description": "invalid - contains symbols",
+          "input": "o-abc123!",
+          "expected": false
+        }
+      ]
+    },
+    "organizationArn": {
+      "type": "string",
+      "pattern": "^arn:aws:organizations::\\d{12}:organization\\/o-[a-z0-9]{10,32}",
+      "tests": [
+        {
+          "description": "Valid ARN",
+          "input": "arn:aws:organizations::111111111111:organization/o-exampleorgid"
+        },
+        {
+          "description": "invalid - Incorrect ARN pattern",
+          "input": "o-abcde12345",
+          "expected": false
+        },
+        {
+          "description": "invalid - Incorrect ARN pattern",
+          "input": "o-abcde12345",
+          "expected": false
+        }
+      ]
+    },
+    "masterAccountArn": {
+      "type": "string",
+      "pattern": "^arn:aws(-us-gov)?:organizations::\\d{12}:account\\/o-[a-z0-9]{10,32}\\/\\d{12}$",
+      "tests": [
+        {
+          "description": "base case",
+          "input": "arn:aws:organizations::111111111111:account/o-exampleorgid/111111111111"
+        },
+        {
+          "description": "invalid - should start with arn:aws:organizations",
+          "input": "o-exampleorgid/111111111111",
+          "expected": false
+        },
+        {
+          "description": "invalid - incorrect type entered",
+          "input": [
+            "127323te"
+          ],
+          "expected": false
+        },
+        {
+          "description": "invalid - boolean value inserted",
+          "input": true,
+          "expected": false
+        }
+      ]
+    },
+    "organizationalUnitArn": {
+      "type": "string",
+      "pattern": "^arn:aws(-us-gov)?:organizations::[0-9]{12}:ou/o-[a-z0-9]{10,32}/ou-[0-9a-z]{4,32}-[0-9a-z]{8,32}$",
+      "tests": [
+        {
+          "input": "arn:aws:organizations::123457891012:ou/o-cjlaeocf2p/ou-lnmn-w3rpbmd5"
+        },
+        {
+          "description": "invalid - account id",
+          "input": "arn:aws:organizations::1234578910:ou/o-cjlaeocf2p/ou-lnmn-w3rpbmd5",
+          "expected": false
+        },
+        {
+          "description": "invalid - organization id",
+          "input": "arn:aws:organizations::123457891012:ou/cjlaeocf2p/lnmn-w3rpbmd5",
+          "expected": false
+        },
+        {
+          "description": "invalid - organizational unit id",
+          "input": "arn:aws:organizations::123457891012:ou/o-cjlaeocf2p/lnmn-w3rpbmd5",
+          "expected": false
+        }
+      ]
+    },
+    "organizationalUnitId": {
+      "type": "string"
+    },
+    "organizationalUnitName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "tests": [
+        {
+          "description": "valid min length",
+          "input": "a"
+        },
+        {
+          "description": "valid max length",
+          "input": "abcd!@#.12345678abcd!@#.12345678abcd!@#.12345678abcd!@#.12345678abcd!@#.12345678abcd!@#.12345678abcd!@#.12345678abcd!@#.12345678"
+        },
+        {
+          "description": "invalid - too short",
+          "input": "",
+          "expected": false
+        },
+        {
+          "description": "invalid - too long",
+          "input": "abcd!@#.12345678abcd!@#.12345678abcd!@#.12345678abcd!@#.12345678abcd!@#.12345678abcd!@#.12345678abcd!@#.12345678abcd!@#.12345678a",
+          "expected": false
+        }
+      ]
+    },
+    "organizationalUnit": {
+      "type": "object",
+      "properties": {
+        "Arn": {
+          "$ref": "#/definitions/organizationalUnitArn"
+        },
+        "Id": {
+          "$ref": "#/definitions/organizationalUnitId"
+        },
+        "Name": {
+          "$ref": "#/definitions/organizationalUnitName"
+        },
+        "turbot": {
+          "type": "object",
+          "properties": {
+            "akas": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/organizationalUnitArn"
+              }
+            },
+            "title": {
+              "$ref": "#/definitions/organizationalUnitName"
+            },
+            "custom": {
+              "type": "object",
+              "properties": {
+                "aws": {
+                  "$ref": "#/definitions/awsMetadata"
+                }
+              }
+            }
+          }
+        }
+      },
+      "required": [
+        "Arn",
+        "Id",
+        "Name",
+        "turbot"
+      ],
+      "additionalProperties": true,
+      "tests": [
+        {
+          "description": "valid - all properties given",
+          "input": {
+            "Arn": "arn:aws:organizations::123457891012:ou/o-cjlaeocf2p/ou-lnmn-w3rpbmd5",
+            "Id": "ou-abcd-123456789",
+            "Name": "MyOrganization",
+            "turbot": {
+              "title": "MyOrganization",
+              "custom": {
+                "aws": {
+                  "organizationId": "o-abcde12345"
+                }
+              }
+            }
+          }
+        },
+        {
+          "description": "invalid - no ARN",
+          "input": {
+            "Name": "MyOrganization",
+            "Id": "ou-abcd-123456789",
+            "turbot": {
+              "title": "MyOrganization",
+              "custom": {
+                "aws": {
+                  "organizationId": "o-abcde12345"
+                }
+              }
+            }
+          },
+          "expected": false
+        },
+        {
+          "description": "invalid - No ID",
+          "input": {
+            "Arn": "arn:aws:organizations::123457891012:ou/o-cjlaeocf2p/ou-lnmn-w3rpbmd5",
+            "Name": "MyOrganization",
+            "turbot": {
+              "title": "MyOrganization",
+              "custom": {
+                "aws": {
+                  "organizationId": "o-abcde12345"
+                }
+              }
+            }
+          },
+          "expected": false
+        },
+        {
+          "description": "invalid - no name",
+          "input": {
+            "Arn": "arn:aws:organizations::123457891012:ou/o-cjlaeocfy2p/ou-lnmn-w3rpbmd5",
+            "Id": "ou-123456789",
+            "turbot": {
+              "title": "MyOrganization",
+              "custom": {
+                "aws": {
+                  "organizationId": "o-abcde12345"
+                }
+              }
+            }
+          },
+          "expected": false
+        },
+        {
+          "description": "invalid - No turbot data",
+          "input": {
+            "Arn": "arn:aws:organizations::123457891012:ou/o-cjlaeocf2p/ou-lnmn-w3rpbmd5",
+            "Id": "ou-123456789",
+            "Name": "MyOrganization"
+          },
+          "expected": false
+        }
+      ]
+    },
+    "regionName": {
+      "type": "string",
+      "enum": [
+        "ap-east-1",
+        "ap-northeast-1",
+        "ap-northeast-2",
+        "ap-northeast-3",
+        "ap-south-1",
+        "ap-southeast-1",
+        "ap-southeast-2",
+        "ca-central-1",
+        "cn-north-1",
+        "cn-northwest-1",
+        "eu-central-1",
+        "eu-north-1",
+        "eu-west-1",
+        "eu-west-2",
+        "eu-west-3",
+        "me-south-1",
+        "sa-east-1",
+        "us-east-1",
+        "us-east-2",
+        "us-gov-east-1",
+        "us-gov-west-1",
+        "us-west-1",
+        "us-west-2"
+      ],
+      "tests": [
+        {
+          "input": "us-east-1"
+        },
+        {
+          "description": "invalid - usea1",
+          "input": "usea1",
+          "expected": false
+        },
+        {
+          "description": "invalid - au-north-1",
+          "input": "au-north-1",
+          "expected": false
+        }
+      ]
+    },
+    "regionNameMatcher": {
+      "type": "string",
+      "pattern": "^[-a-z0-9?*]+$",
+      "example": [
+        "*",
+        "us-*",
+        "us-east-?",
+        "*-east-1"
+      ],
+      "tests": [
+        {
+          "input": "*"
+        },
+        {
+          "input": "us*"
+        },
+        {
+          "input": "us-east-1"
+        },
+        {
+          "description": "invalid - empty string",
+          "input": "",
+          "expected": false
+        },
+        {
+          "description": "invalid - us.+",
+          "input": "us.+",
+          "expected": false
+        },
+        {
+          "description": "invalid - us.*",
+          "input": "us.*",
+          "expected": false
+        }
+      ]
+    },
+    "regionNameMatcherList": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/regionNameMatcher"
+      },
+      "example": [
+        [
+          "us-east-?"
+        ],
+        [
+          "eu*",
+          "us*"
+        ],
+        [
+          "us-east-1",
+          "eu-west-1"
+        ]
+      ],
+      "tests": [
+        {
+          "input": []
+        },
+        {
+          "input": [
+            "*"
+          ]
+        },
+        {
+          "input": [
+            "us-*"
+          ]
+        },
+        {
+          "input": [
+            "us-east-1"
+          ]
+        },
+        {
+          "description": "invalid - empty region",
+          "input": [
+            ""
+          ],
+          "expected": false
+        }
+      ]
+    },
+    "regionNameList": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/regionName"
+      },
+      "tests": [
+        {
+          "input": []
+        },
+        {
+          "input": [
+            "us-east-1"
+          ]
+        },
+        {
+          "input": [
+            "us-east-1",
+            "us-east-2"
+          ]
+        },
+        {
+          "description": "invalid - empty region",
+          "input": [
+            ""
+          ],
+          "expected": false
+        },
+        {
+          "description": "invalid - region",
+          "input": [
+            "us-south-1"
+          ],
+          "expected": false
+        }
+      ]
+    },
+    "regionAka": {
+      "type": "string",
+      "oneOf": [
+        {
+          "pattern": "^arn:aws::(ap-east-1|ap-northeast-1|ap-northeast-2|ap-northeast-3|ap-south-1|ap-southeast-1|ap-southeast-2|ca-central-1|eu-central-1|eu-north-1|eu-west-1|eu-west-2|eu-west-3|me-south-1|sa-east-1|us-east-1|us-east-2|us-west-1|us-west-2):\\d{12}$"
+        },
+        {
+          "pattern": "^arn:aws-us-gov::(us-gov-east-1|us-gov-west-1):\\d{12}$"
+        }
+      ],
+      "tests": [
+        {
+          "description": "base case - commercial cloud",
+          "input": "arn:aws::us-east-1:123456789012"
+        },
+        {
+          "description": "base case - us gov cloud",
+          "input": "arn:aws-us-gov::us-gov-east-1:123456789012"
+        },
+        {
+          "description": "invalid - invalid region name",
+          "input": "arn:aws::us-south-1:123456789012",
+          "expected": false
+        },
+        {
+          "description": "invalid - invalid account ID",
+          "input": "arn:aws::us-east-1:1234567890123",
+          "expected": false
+        }
+      ]
+    },
+    "region": {
+      "type": "object",
+      "properties": {
+        "Name": {
+          "$ref": "#/definitions/regionName"
+        },
+        "turbot": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "$ref": "#/definitions/regionName"
+            },
+            "akas": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/regionAka"
+              }
+            },
+            "custom": {
+              "type": "object",
+              "properties": {
+                "aws": {
+                  "$ref": "#/definitions/awsMetadata"
+                }
+              }
+            }
+          }
+        }
+      },
+      "required": [
+        "Name",
+        "turbot"
+      ],
+      "additionalProperties": true,
+      "tests": [
+        {
+          "description": "all required properties given - commercial cloud",
+          "input": {
+            "Name": "us-east-1",
+            "turbot": {
+              "title": "us-east-1",
+              "akas": [
+                "arn:aws::us-east-1:123456789012"
+              ],
+              "custom": {
+                "aws": {
+                  "accountId": 123456789012,
+                  "regionName": "us-east-1",
+                  "partition": "aws"
+                }
+              }
+            }
+          }
+        },
+        {
+          "description": "all required properties given - us gov cloud",
+          "input": {
+            "Name": "us-gov-east-1",
+            "turbot": {
+              "title": "us-gov-east-1",
+              "akas": [
+                "arn:aws-us-gov::us-gov-east-1:123456789012"
+              ],
+              "custom": {
+                "aws": {
+                  "accountId": 123456789012,
+                  "regionName": "us-east-1",
+                  "partition": "aws-us-gov"
+                }
+              }
+            }
+          }
+        },
+        {
+          "description": "invalid - no region name",
+          "input": {
+            "turbot": {
+              "title": "us-east-1",
+              "akas": [
+                "arn:aws::us-east-1:123456789012"
+              ],
+              "custom": {
+                "aws": {
+                  "accountId": 123456789012,
+                  "regionName": "us-east-1"
+                }
+              }
+            }
+          },
+          "expected": false
+        },
+        {
+          "description": "invalid - no turbot data",
+          "input": {
+            "Name": "us-east-1"
+          },
+          "expected": false
+        },
+        {
+          "description": "invalid - title is not a valid region",
+          "input": {
+            "Name": "not us-east-1",
+            "turbot": {
+              "title": "not us-east-1",
+              "akas": [
+                "arn:aws::not us-east-1:123456789012"
+              ],
+              "custom": {
+                "aws": {
+                  "accountId": 123456789012,
+                  "regionName": "not us-east-1"
+                }
+              }
+            }
+          },
+          "expected": false
+        }
+      ]
+    },
+    "rootArn": {
+      "type": "string",
+      "pattern": "^arn:aws(-us-gov)?:organizations::[0-9]{12}:root\\/o-[a-z0-9]{10,32}\\/r-[0-9a-z]{4,32}",
+      "tests": [
+        {
+          "input": "arn:aws:organizations::123457891012:root/o-cjlaeocf2p/r-lnmn"
+        },
+        {
+          "description": "invalid - account id",
+          "input": "arn:aws:organizations::12345789101:root/o-cjlaeocf2p/r-lnmn",
+          "expected": false
+        },
+        {
+          "description": "invalid - organization id",
+          "input": "arn:aws:organizations::123457891012:root/cjlaeocf2p/r-lnmn",
+          "expected": false
+        },
+        {
+          "description": "invalid - root id",
+          "input": "arn:aws:organizations::123457891012:root/cjlaeocf2p/lnmn",
+          "expected": false
+        }
+      ]
+    },
+    "rootId": {
+      "type": "string",
+      "pattern": "^r-[0-9a-z]{4,32}$",
+      "tests": [
+        {
+          "description": "valid - min length",
+          "input": "r-3jd8"
+        },
+        {
+          "description": "valid - max length",
+          "input": "r-1234abcd1234abcd1234abcd1234abcd"
+        },
+        {
+          "description": "invalid - does not start with r-",
+          "input": "abc123",
+          "expected": false
+        },
+        {
+          "description": "invalid - too short",
+          "input": "r-123",
+          "expected": false
+        },
+        {
+          "description": "invalid - too long",
+          "input": "o-1234abcd1234abcd1234abcd1234abcd1",
+          "expected": false
+        },
+        {
+          "description": "invalid - contains symbols",
+          "input": "r-abcd!",
+          "expected": false
+        }
+      ]
+    },
+    "rootName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "tests": [
+        {
+          "description": "valid min length",
+          "input": "a"
+        },
+        {
+          "description": "valid max length",
+          "input": "abcd!@#.12345678abcd!@#.12345678abcd!@#.12345678abcd!@#.12345678abcd!@#.12345678abcd!@#.12345678abcd!@#.12345678abcd!@#.12345678"
+        },
+        {
+          "description": "invalid - too short",
+          "input": "",
+          "expected": false
+        },
+        {
+          "description": "invalid - too long",
+          "input": "abcd!@#.12345678abcd!@#.12345678abcd!@#.12345678abcd!@#.12345678abcd!@#.12345678abcd!@#.12345678abcd!@#.12345678abcd!@#.12345678a",
+          "expected": false
+        }
+      ]
+    },
+    "policyType": {
+      "type": "string",
+      "enum": [
+        "SERVICE_CONTROL_POLICY"
+      ],
+      "tests": [
+        {
+          "description": "Valid input - SERVICE_CONTROL_POLICY",
+          "input": "SERVICE_CONTROL_POLICY"
+        },
+        {
+          "description": "invalid - Incorrect value",
+          "input": "testtest",
+          "expected": false
+        }
+      ]
+    },
+    "availablePolicyTypes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/policyTypeSummary"
+      },
+      "tests": [
+        {
+          "description": "valid - Base case",
+          "input": [
+            {
+              "status": "ENABLED",
+              "type": "SERVICE_CONTROL_POLICY"
+            },
+            {
+              "status": "PENDING_ENABLE",
+              "type": "SERVICE_CONTROL_POLICY"
+            }
+          ]
+        },
+        {
+          "description": "invalid - Invalid item",
+          "input": [
+            {
+              "status": "ENABLED",
+              "type": "SERVICE_CONTROL_POLICY"
+            },
+            "hello"
+          ],
+          "expected": false
+        }
+      ]
+    },
+    "policyTypeSummary": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/policyStatus"
+        },
+        "type": {
+          "$ref": "#/definitions/policyType"
+        }
+      },
+      "required": [
+        "status",
+        "type"
+      ],
+      "tests": [
+        {
+          "description": "valid - Base case",
+          "input": {
+            "status": "PENDING_DISABLE",
+            "type": "SERVICE_CONTROL_POLICY"
+          }
+        },
+        {
+          "description": "invalid - missing status",
+          "input": {
+            "type": "SERVICE_CONTROL_POLICY"
+          },
+          "expected": false
+        },
+        {
+          "description": "invalid - missing type",
+          "input": {
+            "status": "PENDING_DISABLE"
+          },
+          "expected": false
+        }
+      ]
+    },
+    "policyStatus": {
+      "type": "string",
+      "enum": [
+        "ENABLED",
+        "PENDING_ENABLE",
+        "PENDING_DISABLE"
+      ],
+      "tests": [
+        {
+          "input": "ENABLED"
+        },
+        {
+          "description": "Valid Value - PENDING_ENABLE",
+          "input": "PENDING_ENABLE"
+        },
+        {
+          "description": "invald - Incorrect value",
+          "input": "TEST111",
+          "expected": false
+        }
+      ]
+    },
+    "root": {
+      "type": "object",
+      "properties": {
+        "Arn": {
+          "$ref": "#/definitions/rootArn"
+        },
+        "Id": {
+          "$ref": "#/definitions/rootId"
+        },
+        "Name": {
+          "$ref": "#/definitions/rootName"
+        },
+        "PolicyTypes": {
+          "$ref": "#/definitions/availablePolicyTypes"
+        },
+        "turbot": {
+          "type": "object",
+          "properties": {
+            "title": {
+              "$ref": "#/definitions/rootName"
+            },
+            "custom": {
+              "type": "object",
+              "properties": {
+                "aws": {
+                  "$ref": "#/definitions/awsMetadata"
+                }
+              }
+            }
+          }
+        }
+      },
+      "required": [
+        "Arn",
+        "Id",
+        "Name",
+        "turbot"
+      ],
+      "additionalProperties": true,
+      "tests": [
+        {
+          "description": "valid - all properties given",
+          "input": {
+            "Arn": "arn:aws:organizations::123457891012:root/o-cjlaeocf2p/r-lnmn",
+            "Id": "r-12ab",
+            "Name": "RootFriendlyName",
+            "PolicyTypes": [
+              {
+                "status": "ENABLED",
+                "type": "SERVICE_CONTROL_POLICY"
+              },
+              {
+                "status": "PENDING_DISABLE",
+                "type": "SERVICE_CONTROL_POLICY"
+              }
+            ],
+            "turbot": {
+              "title": "RootFriendlyName",
+              "custom": {
+                "aws": {
+                  "organizationId": "o-cjlaeocf2p"
+                }
+              }
+            }
+          }
+        },
+        {
+          "description": "invalid - no ARN",
+          "input": {
+            "Id": "r-12ab",
+            "Name": "RootFriendlyName",
+            "turbot": {
+              "title": "RootFriendlyName",
+              "custom": {
+                "aws": {
+                  "organizationId": "o-cjlaeocf2p"
+                }
+              }
+            }
+          },
+          "expected": false
+        },
+        {
+          "description": "invalid - no ID",
+          "input": {
+            "Arn": "arn:aws:organizations::123457891012:root/o-cjlaeocf2p/r-lnmn",
+            "Name": "RootFriendlyName",
+            "turbot": {
+              "title": "RootFriendlyName",
+              "custom": {
+                "aws": {
+                  "organizationId": "o-cjlaeocf2p"
+                }
+              }
+            }
+          },
+          "expected": false
+        },
+        {
+          "description": "invalid - no name",
+          "input": {
+            "Arn": "arn:aws:organizations::123457891012:root/o-cjlaeocf2p/r-lnmn",
+            "Id": "r-12ab",
+            "turbot": {
+              "title": "RootFriendlyName",
+              "custom": {
+                "aws": {
+                  "organizationId": "o-cjlaeocf2p"
+                }
+              }
+            }
+          },
+          "expected": false
+        }
+      ]
+    },
+    "budget": {
+      "type": "object",
+      "properties": {
+        "currentMonthActualSpend": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "currentMonthForecastSpend": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "lastUpdatedTime": {
+          "type": "string"
+        },
+        "turbot": {
+          "type": "object",
+          "properties": {
+            "akas": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/budgetAka"
+              }
+            },
+            "title": {
+              "const": "Budget"
+            },
+            "metadata": {
+              "type": "object",
+              "properties": {
+                "budgetUpdatedSince": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                },
+                "lastAttemptTimestamp": {
+                  "type": "string"
+                },
+                "aws": {
+                  "$ref": "aws#/definitions/awsMetadata"
+                },
+                "createTimestamp": {
+                  "$ref": "turbot#/definitions/isoTimestamp"
+                }
+              }
+            }
+          }
+        }
+      },
+      "additionalProperties": true,
+      "tests": [
+        {
+          "description": "base case",
+          "input": {
+            "currentMonthActualSpend": 1000.12,
+            "currentMonthForecastSpend": 5000,
+            "lastUpdatedTime": "2020-03-11T04:02:06.694Z",
+            "turbot": {
+              "akas": [
+                "arn:aws:iam::196048572660:turbotBudget"
+              ],
+              "title": "Budget",
+              "metadata": {
+                "budgetUpdatedSince": 2223,
+                "lastAttemptTimestamp": "2020-03-11T04:02:06.694Z",
+                "aws": {
+                  "accountId": 560741234067,
+                  "partition": "aws"
+                },
+                "createTimestamp": "2018-10-05T03:56:00.000Z"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "budgetAka": {
+      "type": "string",
+      "pattern": "^arn:aws:iam::[0-9]{12}:turbotBudget$"
+    }
+  },
+  "policy": {
+    "types": {
+      "accountCmdb": {
+        "title": "CMDB",
+        "icon": "fal-coins",
+        "parent": "#/resource/types/account",
+        "category": "turbot#/control/categories/cmdb",
+        "targets": [
+          "aws#/resource/types/account"
+        ],
+        "description": "Configure whether to record and synchronize details for the AWS  account into the CMDB.\n\nThe [CMDB](https://turbot.com/v5/docs/concepts/guardrails/cmdb) control is responsible for populating and updating all the attributes for that resource type in the Turbot CMDB.\nAll policies and controls in Turbot are based around the resource, so usually the CMDB policy is set to **\"Enforce: Enabled\"**.\n\nIf set to Skip then all changes to the CMDB are paused - no new resources will be discovered, no updates will be made and deleted resources will not be removed.\n\nTo cleanup resources and stop tracking changes, set this policy to **\"Enforce: Disabled\"**.\n",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "Skip",
+            "Enforce: Enabled",
+            "Enforce: Disabled"
+          ],
+          "example": [
+            "Skip"
+          ],
+          "default": "Enforce: Enabled"
+        }
+      },
+      "partition": {
+        "title": "Partition",
+        "icon": "fal-divide",
+        "description": "The AWS partition for this account. By default, Turbot will determine the\npartition by parsing the AWS > Account > Turbot IAM Role, though you can\noverride this behavior if required.\n\nFor standard AWS regions, the partition is aws. For resources in the AWS GovCloud\n(US-West) region is aws-us-gov.\n\n**Note**: The default (calculated) value is usually appropriate, however\nyou can override the Turbot behavior by setting this policy (either\nvia calculated policy or immediate value).  DON'T CHANGE THIS UNLESS\nYOU KNOW WHAT YOU\"RE DOING!\n",
+        "category": "turbot#/control/categories/other",
+        "targets": "#/resource/types/account",
+        "parent": "#/resource/types/account",
+        "schema": {
+          "$ref": "#/definitions/awsPartitionType"
+        },
+        "defaultTemplate": "{% if $.iamRole %}{{ $.iamRole.split(':')[1] }}{% else %}{% endif %}",
+        "defaultTemplateInput": [
+          "{\n  account {\n    turbot {\n      id\n    }\n  }\n}\n",
+          "{\n  iamRole: policy(uri:\"#/policy/types/turbotIamRole\" resourceId:\"{{ $.account.turbot.id }}\")\n}\n"
+        ]
+      },
+      "serviceRoles": {
+        "icon": "fal-user",
+        "title": "Service Roles",
+        "description": "Configure standard Turbot Service Roles for services such as AWS, VPC\nFlow logs, etc..\n",
+        "parent": "#/policy/types/turbot",
+        "targets": "#/resource/types/account",
+        "category": "turbot#/control/categories/turbot",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "Skip",
+            "Check: Configured",
+            "Check: Not configured",
+            "Enforce: Configured",
+            "Enforce: Not configured"
+          ],
+          "default": "Skip"
+        }
+      },
+      "serviceRolesNamePath": {
+        "icon": "fal-pencil",
+        "title": "Name Path",
+        "description": "The value to be used in resource path names for standard Turbot Service Roles.\nThe path should start and end with a slash (/)\n",
+        "parent": "#/policy/types/serviceRoles",
+        "targets": "#/resource/types/account",
+        "category": "turbot#/control/categories/turbot",
+        "schema": {
+          "type": "string",
+          "default": "/turbot/"
+        }
+      },
+      "serviceRolesNamePrefix": {
+        "icon": "fal-pencil",
+        "title": "Name Prefix",
+        "description": "A prefix to be used in resource names for standard Turbot IAM Service Roles.\n",
+        "parent": "#/policy/types/serviceRoles",
+        "targets": "#/resource/types/account",
+        "category": "turbot#/control/categories/turbot",
+        "schema": {
+          "type": "string",
+          "default": "turbot_"
+        }
+      },
+      "serviceRolesFlowLogging": {
+        "icon": "fal-user",
+        "title": "Flow Logging",
+        "description": "Configure the standard Turbot Service Role for the AWS VPC Flow Logging service.\n",
+        "parent": "#/policy/types/serviceRoles",
+        "targets": "#/resource/types/account",
+        "category": "turbot#/control/categories/turbot",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "Enabled",
+            "Disabled"
+          ],
+          "default": "Enabled"
+        }
+      },
+      "serviceRolesFlowLoggingName": {
+        "icon": "fal-user",
+        "title": "Name",
+        "description": "The resource name for standard Turbot IAM VPC Flow Logging Service Role.\n",
+        "parent": "#/policy/types/serviceRolesFlowLogging",
+        "targets": "#/resource/types/account",
+        "category": "turbot#/control/categories/turbot",
+        "schema": {
+          "type": "string"
+        },
+        "defaultTemplate": "{{ $.roleNamePrefix }}vpc_flow_logging",
+        "defaultTemplateInput": [
+          "{\n  account {\n    turbot {\n      id\n    }\n  }\n}\n",
+          "{\n  roleNamePrefix: policy(uri:\"aws#/policy/types/serviceRolesNamePrefix\", resourceId: \"{{ $.account.turbot.id }}\")\n}\n"
+        ]
+      },
+      "serviceRolesSsmNotifications": {
+        "icon": "fal-user",
+        "title": "SSM Notifications",
+        "description": "Configure the standard Turbot Service Role for the AWS SSM Notifications.\n",
+        "parent": "#/policy/types/serviceRoles",
+        "targets": "#/resource/types/account",
+        "category": "turbot#/control/categories/turbot",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "Enabled",
+            "Disabled"
+          ],
+          "default": "Enabled"
+        }
+      },
+      "serviceRolesSsmNotificationsName": {
+        "title": "Name",
+        "icon": "fal-info-circle",
+        "readOnly": true,
+        "description": "A value to add as SSM Notifications name.\n",
+        "category": "turbot#/control/categories/turbot",
+        "parent": "#/policy/types/serviceRolesSsmNotifications",
+        "targets": "#/resource/types/account",
+        "schema": {
+          "type": "string"
+        },
+        "defaultTemplate": "'{{ $.roleNamePrefix }}ssm_notifications_role'",
+        "defaultTemplateInput": "{\n  item: account {\n      turbot{\n        id\n      }\n    }\n  roleNamePrefix: policy(uri: \"#/policy/types/serviceRolesNamePrefix\")\n}\n"
+      },
+      "serviceRolesDefaultEc2Instance": {
+        "icon": "fal-user",
+        "title": "Default EC2 Instance",
+        "description": "Configure the standard Turbot Service Role for use with AWS EC2 instances.\n",
+        "parent": "#/policy/types/serviceRoles",
+        "targets": "#/resource/types/account",
+        "category": "turbot#/control/categories/turbot",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "Enabled",
+            "Disabled"
+          ],
+          "default": "Enabled"
+        }
+      },
+      "serviceRolesDefaultEc2InstanceName": {
+        "icon": "fal-user",
+        "title": "Name",
+        "description": "The resource name for standard Turbot IAM default EC2 instance Service Role.\n",
+        "parent": "#/policy/types/serviceRolesDefaultEc2Instance",
+        "readOnly": true,
+        "targets": "#/resource/types/account",
+        "category": "turbot#/control/categories/turbot",
+        "schema": {
+          "type": "string"
+        },
+        "defaultTemplate": "{{ $.roleNamePrefix }}default_ec2_instance_role",
+        "defaultTemplateInput": [
+          "{\n  account {\n    turbot {\n      id\n    }\n  }\n}\n",
+          "{\n  roleNamePrefix: policy(uri:\"aws#/policy/types/serviceRolesNamePrefix\", resourceId: \"{{ $.account.turbot.id }}\")\n}\n"
+        ]
+      },
+      "serviceRolesDefaultEc2InstanceSsmPermissions": {
+        "icon": "fal-user",
+        "title": "SSM Permissions",
+        "description": "Configure the standard Turbot Service Role for the AWS default EC2 instance service with SSM Permissions.\n",
+        "parent": "#/policy/types/serviceRolesDefaultEc2Instance",
+        "targets": "#/resource/types/account",
+        "category": "turbot#/control/categories/turbot",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "Enabled",
+            "Disabled"
+          ],
+          "default": "Enabled"
+        }
+      },
+      "serviceRolesConfigurationRecording": {
+        "icon": "fal-user",
+        "title": "Configuration Recording",
+        "description": "Configure the standard Turbot Service Role for the AWS Config service.\n",
+        "parent": "#/policy/types/serviceRoles",
+        "targets": "#/resource/types/account",
+        "category": "turbot#/control/categories/turbot",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "Enabled",
+            "Disabled"
+          ],
+          "default": "Enabled"
+        }
+      },
+      "serviceRolesConfigurationRecordingName": {
+        "icon": "fal-user",
+        "title": "Name",
+        "readOnly": true,
+        "description": "The resource name for standard Turbot IAM Config Service Role.\nThis policy is read-only, and generated by Turbot based on the\n`Service Roles > Name Prefix` policy.\n",
+        "parent": "#/policy/types/serviceRolesConfigurationRecording",
+        "targets": "#/resource/types/account",
+        "category": "turbot#/control/categories/turbot",
+        "schema": {
+          "type": "string"
+        },
+        "defaultTemplate": "{{ $.roleNamePrefix }}config",
+        "defaultTemplateInput": [
+          "{\n  account {\n    turbot {\n      id\n    }\n  }\n}\n",
+          "{\n  roleNamePrefix: policy(uri:\"aws#/policy/types/serviceRolesNamePrefix\", resourceId: \"{{ $.account.turbot.id }}\")\n}\n"
+        ]
+      },
+      "serviceRolesSource": {
+        "icon": "fal-calculator",
+        "title": "Source",
+        "readOnly": true,
+        "description": "The Terraform source used to configure the standard Turbot Service Roles.\nThis policy is read-only, as the stack source is generated by Turbot\n",
+        "parent": "#/policy/types/serviceRoles",
+        "targets": "#/resource/types/account",
+        "category": "turbot#/control/categories/turbot",
+        "schema": {
+          "type": "string",
+          "x-schema-form": {
+            "type": "code",
+            "language": "hcl"
+          }
+        }
+      },
+      "serviceRolesTerraformVersion": {
+        "title": "Terraform Version",
+        "icon": "fal-bring-forward",
+        "parent": "#/policy/types/serviceRoles",
+        "category": "turbot#/control/categories/configured",
+        "readOnly": true,
+        "targets": [
+          "#/resource/types/account"
+        ],
+        "description": "The Version of Terraform to use for this stack.\nSpecify an [npm-style semver](https://docs.npmjs.com/misc/semver) string to\ndetermine which version of the Terraform container\nTurbot will use to run this stack.\nA Turbot `Stack` is a set of resources configured by Turbot,\nas specified  via Terraform source.  Stacks are responsible\nfor the creation and deletion of multiple resources. Once created,\nstack resources are responsible for configuring themselves from\nthe stack source via their `Configured` control.\n",
+        "schema": {
+          "type": "string",
+          "default": "0.11.*"
+        }
+      },
+      "accountStack": {
+        "title": "Stack",
+        "icon": "fal-layer-group",
+        "parent": "#/resource/types/account",
+        "category": "turbot#/control/categories/configured",
+        "targets": [
+          "aws#/resource/types/account"
+        ],
+        "description": "Configure a custom stack on AWS, per the custom `Stack > Source`.\n\nA Turbot `Stack` is a set of resources configured by Turbot, as specified\nvia Terraform source.  Stacks are responsible for the creation and deletion\nof multiple resources. Once created, stack resources are responsible for\nconfiguring themselves from the stack source via their `Configured` control.\n",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "Skip",
+            "Check: Configured",
+            "Enforce: Configured"
+          ],
+          "default": "Skip"
+        }
+      },
+      "accountStackSource": {
+        "title": "Source",
+        "icon": "fal-file-alt",
+        "parent": "#/policy/types/accountStack",
+        "category": "turbot#/control/categories/configured",
+        "targets": [
+          "aws#/resource/types/account"
+        ],
+        "description": "The Terraform HCL source used to configure this stack.\n\nA Turbot `Stack` is a set of resources configured by Turbot, as specified\nvia Terraform source.  Stacks are responsible for the creation and deletion\nof multiple resources. Once created, stack resources are responsible for\nconfiguring themselves from the stack source via their `Configured` control.\n",
+        "schema": {
+          "type": "string",
+          "default": "",
+          "x-schema-form": {
+            "type": "code",
+            "language": "hcl"
+          }
+        }
+      },
+      "accountStackVariables": {
+        "title": "Variables",
+        "icon": "fal-pen",
+        "parent": "#/policy/types/accountStack",
+        "category": "turbot#/control/categories/configured",
+        "targets": [
+          "aws#/resource/types/account"
+        ],
+        "description": "Terraform variables in Terraform HCL that will be used as\ninputs to the stack as a [.tfvars file](https://www.terraform.io/docs/configuration/variables.html#variable-definitions-tfvars-files).\n\nA Turbot `Stack` is a set of resources configured by Turbot,\nas specified  via Terraform source.  Stacks are responsible\nfor the creation and deletion of multiple resources. Once created,\nstack resources are responsible for configuring themselves from\nthe stack source via their `Configured` control.\n",
+        "schema": {
+          "type": "string",
+          "x-schema-form": {
+            "type": "code",
+            "language": "hcl"
+          }
+        }
+      },
+      "accountStackSecretVariables": {
+        "title": "Secret Variables",
+        "icon": "fal-pen",
+        "parent": "#/policy/types/accountStack",
+        "category": "turbot#/control/categories/configured",
+        "secret": true,
+        "targets": [
+          "aws#/resource/types/account"
+        ],
+        "description": "Terraform secret variables in Terraform HCL that will be used as\ninputs to the stack as a [.tfvars file](https://www.terraform.io/docs/configuration/variables.html#variable-definitions-tfvars-files).\n\nA Turbot `Stack` is a set of resources configured by Turbot,\nas specified  via Terraform source.  Stacks are responsible\nfor the creation and deletion of multiple resources. Once created,\nstack resources are responsible for configuring themselves from\nthe stack source via their `Configured` control.\n",
+        "schema": {
+          "type": "string",
+          "x-schema-form": {
+            "type": "code",
+            "language": "hcl"
+          }
+        }
+      },
+      "accountStackTerraformVersion": {
+        "title": "Terraform Version",
+        "icon": "fal-bring-forward",
+        "parent": "#/policy/types/accountStack",
+        "category": "turbot#/control/categories/configured",
+        "targets": [
+          "aws#/resource/types/account"
+        ],
+        "description": "The Version of Terraform to use for this stack.\nSpecify an [npm-style semver](https://docs.npmjs.com/misc/semver) string to\ndetermine which version of the Terraform container\nTurbot will use to run this stack.\n\nA Turbot `Stack` is a set of resources configured by Turbot,\nas specified  via Terraform source.  Stacks are responsible\nfor the creation and deletion of multiple resources. Once created,\nstack resources are responsible for configuring themselves from\nthe stack source via their `Configured` control.\n",
+        "schema": {
+          "type": "string"
+        },
+        "defaultTemplate": "{% if $.terraformVersion %}\"{{$.terraformVersion}}\"{% else %}\"\"{% endif %}",
+        "defaultTemplateInput": "{\n  terraformVersion: policy(uri:\"tmod:@turbot/turbot#/policy/types/stackTerraformVersion\")\n}\n"
+      },
+      "defaultTagsTemplate": {
+        "title": "Tags Template [Default]",
+        "icon": "fal-tags",
+        "description": "A template used to generate the keys and values for AWS\nresources.  By default, all AWS service Tags Template [Default]\npolicies will use this value.\n",
+        "parent": "#/resource/types/account",
+        "targets": "#/resource/types/account",
+        "category": "turbot#/control/categories/resourceTags",
+        "schema": {
+          "$ref": "aws#/definitions/tagsTemplateInput",
+          "example": [
+            {
+              "foo": "bar",
+              "environment": "prod"
+            },
+            [
+              {
+                "foo123": "bar"
+              },
+              {
+                "environment": "dev"
+              }
+            ],
+            [
+              {
+                "cost-center": "zz123"
+              },
+              {
+                "delete-me": "undefined"
+              }
+            ]
+          ]
+        },
+        "defaultTemplate": "{%- if $.defaultTags.tags | length == 0 %} [] {%- elif $.defaultTags.tags != undefined %}{{ $.defaultTags.tags | dump | safe }}{% endif %}",
+        "defaultTemplateInput": "{\n  defaultTags: resource {\n      tags(resolution: RECOMMENDED)\n    }\n}\n"
+      },
+      "auditTrail": {
+        "icon": "fal-list-ol",
+        "title": "Audit Trail",
+        "parent": "#/policy/types/turbot",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "description": "Configure the Turbot CloudTrail stack.\n\nThe Turbot Audit Trail provides a mechanism for configuring a CloudTrail to\nrecord an audit trail of API calls to your AWS accounts.\n",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "Skip",
+            "Check: Configured",
+            "Check: Not configured",
+            "Enforce: Configured",
+            "Enforce: Not configured"
+          ],
+          "default": "Skip"
+        }
+      },
+      "auditTrailCloudTrail": {
+        "icon": "fal-list-ol",
+        "title": "CloudTrail",
+        "parent": "#/policy/types/auditTrail",
+        "category": "turbot#/control/categories/resourceLogging",
+        "description": "Placeholder"
+      },
+      "auditTrailTrail": {
+        "icon": "fal-list-ol",
+        "title": "Trail",
+        "parent": "#/policy/types/auditTrailCloudTrail",
+        "category": "turbot#/control/categories/resourceLogging",
+        "description": "Placeholder"
+      },
+      "auditTrailTrailNamePrefix": {
+        "icon": "fal-list-ol",
+        "title": "Name Prefix",
+        "parent": "#/policy/types/auditTrailTrail",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "description": "A string to be used as a prefix to the Turbot generated name for the Turbot\nmanaged CloudTrail. The name will be pre-pended with this value.\n\nThe Turbot Audit Trail provides a mechanism for configuring a CloudTrail to\nrecord an audit trail of API calls to your AWS accounts.\n\nNote that this policy is ignored if the `AWS > Turbot > Audit Trail > CloudTrail > Trail > Name` policy has a policy setting defined explicitly.\n",
+        "schema": {
+          "type": "string",
+          "default": "turbot-",
+          "example": "turbot-"
+        }
+      },
+      "trailTags": {
+        "icon": "fal-list-ol",
+        "title": "Tags",
+        "parent": "#/policy/types/auditTrailTrail",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "description": "A list of key:value pairs to add as AWS tags onto the Turbot managed\nCloudTrail resource.\n\nThe Turbot Audit Trail provides a mechanism for configuring a CloudTrail to\nrecord an audit trail of API calls to your AWS accounts.\n",
+        "schema": {
+          "$ref": "#/definitions/tagsTemplateTagsMap"
+        }
+      },
+      "trailEnabled": {
+        "icon": "fal-list-ol",
+        "title": "Enabled",
+        "parent": "#/policy/types/auditTrailTrail",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "description": "The desired state of the CloudTrail.  When disabled, a CloudTrail does not log\nany events\n\nThe Turbot Audit Trail provides a mechanism for configuring a CloudTrail to\nrecord an audit trail of API calls to your AWS accounts.\n",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "Enabled",
+            "Disabled"
+          ],
+          "default": "Enabled"
+        }
+      },
+      "trailType": {
+        "icon": "fal-list-ol",
+        "title": "Type",
+        "parent": "#/policy/types/auditTrailTrail",
+        "targets": "#/resource/types/account",
+        "category": "turbot#/control/categories/resourceLogging",
+        "description": "The type of CloudTrail deployment to use with Turbot Audit Trail.\n\nCloudTrail has options for multi-region or single region trails, as well as a new option for\nOrganization trails (for customers that leverage AWS Organizations). This provides\nflexibility in implementation (as well as backwards compatibility - neither multi-region nor\norganization trails were options when the service launched).\n\nNote that Turbot must manage your Organization Master account in order to use an Organization\ntrail - this can only be configured from the Organization master account.\n",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "A trail in each region of each account",
+            "A multi-region trail in the `Trail > Global Region` in each account"
+          ],
+          "default": "A multi-region trail in the `Trail > Global Region` in each account"
+        }
+      },
+      "trailGlobalRegion": {
+        "icon": "fal-list-ol",
+        "title": "Global Region",
+        "parent": "#/policy/types/auditTrailTrail",
+        "targets": "#/resource/types/account",
+        "category": "turbot#/control/categories/resourceLogging",
+        "description": "The region in that will host the Turbot Trail when configured to use a\nmulti-region trail.\n\nThe Turbot Audit Trail provides a mechanism for configuring a CloudTrail to\nrecord an audit trail of API calls to your AWS accounts.\n",
+        "schema": {
+          "$ref": "#/definitions/regionName"
+        },
+        "defaultTemplate": "{% if $.partitionPolicy == 'aws' %}us-east-1{% else %}us-gov-west-1{% endif %}",
+        "defaultTemplateInput": [
+          "{\n  account {\n    turbot {\n      id\n    }\n  }\n}\n",
+          "{\n  partitionPolicy: policy(uri:\"#/policy/types/partition\" resourceId: \"{{ $.account.turbot.id }}\")\n}\n"
+        ]
+      },
+      "trailBucket": {
+        "icon": "fal-list-ol",
+        "title": "S3 Bucket",
+        "parent": "#/policy/types/auditTrailTrail",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "description": "The name of an S3 bucket to which the Turbot Trail will be delivered.\n\nCloudTrail must write to S3, thus this policy is required.  The S3 bucket\nmust already exist (the stack will not create it) and the CloudTrail\nservice must be allowed write access. The bucket can reside in any\nregion of any account.\n",
+        "schema": {
+          "type": "string"
+        },
+        "defaultTemplate": "{{ $.bucketName }}",
+        "defaultTemplateInput": [
+          "{\n  region {\n    turbot {\n      id\n    }\n  }\n}\n",
+          "{\n  bucketName: policy(uri:\"#/policy/types/loggingBucketDefault\", resourceId: \"{{ $.region.turbot.id }}\")\n}\n"
+        ]
+      },
+      "trailKeyPrefix": {
+        "icon": "fal-list-ol",
+        "title": "S3 Key Prefix",
+        "parent": "#/policy/types/auditTrailTrail",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "description": "An S3 key prefix to which the Turbot Trail will be written.\n",
+        "schema": {
+          "type": "string",
+          "default": ""
+        }
+      },
+      "trailEncryptionKey": {
+        "icon": "fal-list-ol",
+        "title": "Encryption Key",
+        "parent": "#/policy/types/auditTrailTrail",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "description": "The KMS key ID that encrypts the logs delivered by CloudTrail. The value is a\nfully specified ARN to a KMS key in the format:\n    `arn:aws:kms:us-east-2:123456789012:key/12345678-1234-1234-1234-123456789012`\n\nIf a key is specified in this policy, SSE-KMS encryption will be enabled with this key.  If the `Encryption Key` policy is blank, the default (SSE-S3) encryption will be used.\n\nThe key will not be created in this stack - it must already exist and CloudTrail\nmust have the correct permissions to use the key. Turbot will not modify the key policy.\n",
+        "schema": {
+          "type": "string",
+          "default": ""
+        }
+      },
+      "trailIncludeGlobalServiceEvents": {
+        "icon": "fal-list-ol",
+        "title": "Include Global Service Events",
+        "parent": "#/policy/types/auditTrailTrail",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "description": "Determine whether or not events from global services (such as IAM, STS, CloudFront, and Route 53) are logged to the Turbot trail.\n\nIf you have multiple single region trails, consider configuring your trails so that global service events are delivered in only one of the trails.\n",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "Enabled: Include Global Service Events",
+            "Disabled: Do not include Global Service Events"
+          ],
+          "default": "Enabled: Include Global Service Events"
+        }
+      },
+      "trailLogFileValidation": {
+        "icon": "fal-list-ol",
+        "title": "Log File Validation",
+        "parent": "#/policy/types/auditTrailTrail",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "description": "Determine whether or not log file integrity validation is enabled for\nthe Turbot trail.\n\nEnable CloudTrail log file integrity validation to determine whether a log file was\nmodified, deleted, or unchanged after CloudTrail delivered it.\n",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "Enabled",
+            "Disabled"
+          ],
+          "default": "Enabled"
+        }
+      },
+      "trailSnsTopic": {
+        "icon": "fal-list-ol",
+        "title": "SNS Topic",
+        "parent": "#/policy/types/auditTrailTrail",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "description": "An SNS Topic ARN to which to send notifications when CloudTrail publishes logs.  If no topic is specified (the `SNS Topic` policy is blank), then SNS forwarding\nwill be disabled for the Turbot Trail.\n\nNote that the SNS topic will not be created in this stack - it must already exist.\nThe SNS topic policy must allow CloudTrail to publish to the topic - The stack will\nnot update the policy\n",
+        "schema": {
+          "type": "string",
+          "default": "",
+          "example": "arn:aws:sns:us-east-2:123456789012:MyTopic"
+        }
+      },
+      "trailCloudWatchRole": {
+        "icon": "fal-list-ol",
+        "title": "CloudWatch Role",
+        "parent": "#/policy/types/auditTrailTrail",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "description": "The name of an IAM role that CloudTrail will assume to write logs to CloudWatch logs.\n\nIf CloudWatch Log forwarding is enabled, you must also specify a role that CloudTrail\ncan assume to write the logs.  This role must have logs:CreateLogStream and logs:PutLogEvents\nfor the CloudWatch Log Group, and must allow the CloudTrail Service (cloudtrail.amazonaws.com)\nthe ability to assume the role\n\nThe role must already exist - the stack wont create it\n",
+        "schema": {
+          "type": "string",
+          "default": ""
+        }
+      },
+      "trailEventSelectors": {
+        "icon": "fal-list-ol",
+        "title": "Event Selectors",
+        "parent": "#/policy/types/auditTrailTrail",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "description": "An event selector that specifies which events to log in the Turbot Trail.  If\nno event selector is specified, the trail will log all read and write\nmanagement events, and no data events\n\nThe `Event Selectors` policy allows you to specify up to 5 CloudTrail [event selectors](https://docs.aws.amazon.com/awscloudtrail/latest/APIReference/API_EventSelector.html)\nto further specify the management and S3 and/or lambda data event settings for the trail.\n\nBy default, trails created without specific event selectors will be configured to log\nall read and write management events, and no data events\n\nThe format of this policy is the native terraform hcl for [event selectors](https://www.terraform.io/docs/providers/aws/r/cloudtrail.html#event_selector)\n",
+        "schema": {
+          "type": "string",
+          "x-schema-form": {
+            "type": "code",
+            "language": "hcl"
+          },
+          "default": ""
+        }
+      },
+      "trailName": {
+        "icon": "fal-list-ol",
+        "title": "Name",
+        "parent": "#/policy/types/auditTrailTrail",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "description": "A policy that displays the calculated Turbot CloudTrail name for\nthis region.\n\nThis stack configures a CloudTrail for use of auditing API calls.\n",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "auditTrailSource": {
+        "icon": "fal-list-ol",
+        "title": "Source",
+        "parent": "#/policy/types/auditTrail",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "readOnly": true,
+        "description": "The Terraform source used to configure the Turbot Audit Trail stack.\n\nThe Turbot Audit Trail provides a mechanism for configuring a CloudTrail to\nrecord an audit trail of API calls to your AWS accounts.\n\nThis policy is read-only, as the Audit Trail source is generated by Turbot\n",
+        "schema": {
+          "type": "string",
+          "x-schema-form": {
+            "type": "code",
+            "language": "hcl"
+          }
+        }
+      },
+      "auditTrailTerraformVersion": {
+        "title": "Terraform Version",
+        "icon": "fal-bring-forward",
+        "parent": "#/policy/types/auditTrail",
+        "category": "turbot#/control/categories/configured",
+        "readOnly": true,
+        "targets": [
+          "#/resource/types/region"
+        ],
+        "description": "The Version of Terraform to use for this stack.\nSpecify an [npm-style semver](https://docs.npmjs.com/misc/semver) string to\ndetermine which version of the Terraform container\nTurbot will use to run this stack.\nA Turbot `Stack` is a set of resources configured by Turbot,\nas specified  via Terraform source.  Stacks are responsible\nfor the creation and deletion of multiple resources. Once created,\nstack resources are responsible for configuring themselves from\nthe stack source via their `Configured` control.\n",
+        "schema": {
+          "type": "string",
+          "default": "0.11.*"
+        }
+      },
+      "turbotIamRole": {
+        "title": "Turbot IAM Role",
+        "icon": "fal-user-cog",
+        "description": "IAM Role used by Turbot for access to the AWS account.",
+        "parent": "#/resource/types/account",
+        "targets": "#/resource/types/account",
+        "category": "turbot#/control/categories/other",
+        "schema": {
+          "type": "string",
+          "pattern": "^arn:aws(-us-gov|-cn)?:iam::[0-9]{12}:role(/[A-Za-z0-9.,+@=_-]+)*/[A-Za-z0-9+=,.@_-]{1,64}$"
+        },
+        "defaultTemplate": "{{ $.iamRole }}",
+        "defaultTemplateInput": [
+          "{\n  account {\n    turbot {\n      id\n    }\n  }\n}\n",
+          "{\n  iamRole: policy(uri:\"#/policy/types/turbotIamRoleOrganization\", resourceId: \"{{ $.account.turbot.id }}\")\n}\n"
+        ]
+      },
+      "turbotIamRoleExternalId": {
+        "title": "External ID",
+        "icon": "fal-id-card",
+        "description": "External ID for secure access to the Turbot IAM Role",
+        "parent": "#/policy/types/turbotIamRole",
+        "targets": "#/resource/types/account",
+        "category": "turbot#/control/categories/other",
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "defaultTemplate": "{{ $.iamRoleExternalId }}",
+        "defaultTemplateInput": [
+          "{\n  account {\n    turbot {\n      id\n    }\n  }\n}\n",
+          "{\n  iamRoleExternalId: policy(uri:\"#/policy/types/turbotIamRoleExternalIdOrganization\", resourceId: \"{{ $.account.turbot.id }}\")\n}\n"
+        ]
+      },
+      "turbotIamRoleExternalIdProtection": {
+        "title": "Protection",
+        "icon": "fal-lock",
+        "description": "When generating credentials for the AWS account, check if the role's external ID is in the protected format, e.g., `turbot:123456789012345:foo`, and if it is, check if the turbot resource ID is for the workspace's turbot resource. If the turbot resource ID does not match, credentials will not be generated.\n\nIf set to `Protected`, the external ID must be in the protected format for credentials to be generated.\n",
+        "parent": "#/policy/types/turbotIamRoleExternalId",
+        "targets": "turbot#/resource/types/turbot",
+        "category": "turbot#/control/categories/turbot",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "Open",
+            "Protected"
+          ],
+          "default": "Open"
+        }
+      },
+      "turbotIamRoleOrganization": {
+        "title": "Turbot IAM Role [Organization]",
+        "icon": "fal-users-class",
+        "description": "IAM Role used by Turbot for access to the AWS account.",
+        "parent": "#/resource/types/organization",
+        "targets": [
+          "#/resource/types/organization",
+          "#/resource/types/organizationalUnit"
+        ],
+        "category": "turbot#/control/categories/other",
+        "schema": {
+          "type": "string",
+          "pattern": "^arn:aws(-us-gov)?:iam::[0-9]{12}:role(/[A-Za-z0-9.,+@=_-]+)*/[A-Za-z0-9+=,.@_-]{1,64}$"
+        }
+      },
+      "turbotIamRoleExternalIdOrganization": {
+        "title": "External ID [Organization]",
+        "icon": "fal-id-card",
+        "description": "External ID for secure access to the Turbot IAM Role",
+        "parent": "#/policy/types/turbotIamRoleOrganization",
+        "targets": [
+          "#/resource/types/organization",
+          "#/resource/types/organizationalUnit"
+        ],
+        "category": "turbot#/control/categories/other",
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "turbotIamAccessKeyId": {
+        "title": "Turbot IAM Access Key ID",
+        "icon": "fal-key",
+        "description": "IAM access key ID used by Turbot for access to the AWS account.",
+        "parent": "#/resource/types/account",
+        "targets": "#/resource/types/account",
+        "category": "turbot#/control/categories/other",
+        "schema": {
+          "type": "string",
+          "pattern": "^A[KS]IA[A-Z0-9]{16}$"
+        }
+      },
+      "turbotIamSecretAccessKey": {
+        "title": "Turbot IAM Secret Access Key",
+        "icon": "fal-key-skeleton",
+        "description": "IAM secret access key used by Turbot for access to the AWS account.",
+        "parent": "#/resource/types/account",
+        "targets": "#/resource/types/account",
+        "category": "turbot#/control/categories/other",
+        "secret": true,
+        "schema": {
+          "type": "string",
+          "pattern": "^[A-z0-9/+=]{40}$"
+        }
+      },
+      "turbotIamCredentialType": {
+        "title": "Turbot IAM Credential Type",
+        "icon": "fal-mask",
+        "description": "IAM credential type that Turbot will use for access to the AWS account. Turbot recommends setting this policy value to 'Role'.",
+        "parent": "#/resource/types/account",
+        "targets": "#/resource/types/account",
+        "category": "turbot#/control/categories/other",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "Role",
+            "Access key pair"
+          ],
+          "default": "Role"
+        }
+      },
+      "eventHandlers": {
+        "title": "Event Handlers",
+        "icon": "fal-calendar-exclamation",
+        "description": "Configure the Turbot AWS Event Handlers stack. This stack configures the\ncloudwatch and SNS resources required for Turbot real-time event routing.\n",
+        "category": "turbot#/control/categories/configured",
+        "targets": "#/resource/types/region",
+        "parent": "#/policy/types/turbot",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "Skip",
+            "Check: Configured",
+            "Check: Not configured",
+            "Enforce: Configured",
+            "Enforce: Not configured"
+          ],
+          "default": "Skip"
+        }
+      },
+      "eventHandlersSns": {
+        "title": "SNS",
+        "icon": "fal-mail-bulk",
+        "category": "turbot#/control/categories/turbot",
+        "parent": "#/policy/types/eventHandlers"
+      },
+      "eventHandlersSnsTopic": {
+        "title": "Topic",
+        "icon": "fal-share-alt",
+        "category": "turbot#/control/categories/turbot",
+        "parent": "#/policy/types/eventHandlersSns"
+      },
+      "eventHandlersSnsTopicNamePrefix": {
+        "title": "Name Prefix",
+        "icon": "fal-file-signature",
+        "description": "A string to be used as a prefix to the turbot generated name on the\nTurbot Event Handlers SNS topic. The name will be\npre-pended with this value.\n",
+        "category": "turbot#/control/categories/configured",
+        "parent": "#/policy/types/eventHandlersSnsTopic",
+        "targets": "#/resource/types/region",
+        "schema": {
+          "type": "string",
+          "default": "turbot_",
+          "example": "turbot_"
+        }
+      },
+      "eventHandlersSnsTopicTags": {
+        "icon": "fal-info-circle",
+        "title": "Tags",
+        "description": "A list of key:value pairs to add as AWS tags on the Turbot Event Handlers SNS topic.\n",
+        "parent": "#/policy/types/eventHandlersSnsTopic",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/configured",
+        "schema": {
+          "$ref": "#/definitions/tagsTemplateTagsMap",
+          "default": {}
+        }
+      },
+      "eventHandlersSnsTopicCustomerManagedKey": {
+        "title": "Customer Managed Key",
+        "icon": "fal-key",
+        "description": "A Customer Managed KMS key used for server side encryption of the SNS\ntopic used created for the AWS Event Handlers.\n\nIf no key is specified, server side encryption will not be enabled.\n\nNote that the key will not be created in this stack - it must already\nexist. The key policy must grant the kms:GenerateDataKey* and kms:Decrypt\npermissions to Amazon CloudWatch Events (events.amazonaws.com). The Turbot\nuser must also have permissions to decrypt messages with this CMK.\n\nSee https://docs.aws.amazon.com/sns/latest/dg/sns-server-side-encryption.html\n",
+        "category": "turbot#/control/categories/configured",
+        "parent": "#/policy/types/eventHandlersSnsTopic",
+        "targets": "#/resource/types/region",
+        "schema": {
+          "type": "string",
+          "default": ""
+        }
+      },
+      "eventHandlersEvents": {
+        "title": "Events",
+        "icon": "fal-calendar-exclamation",
+        "category": "turbot#/control/categories/turbot",
+        "parent": "#/policy/types/eventHandlers"
+      },
+      "eventHandlersEventsRules": {
+        "title": "Rules",
+        "icon": "fal-list-alt",
+        "category": "turbot#/control/categories/turbot",
+        "parent": "#/policy/types/eventHandlersEvents"
+      },
+      "eventHandlersEventsRulesNamePrefix": {
+        "title": "Name Prefix",
+        "icon": "fal-file-signature",
+        "description": "A string to be used as a prefix to the turbot generated name on the\nTurbot Event Handlers Cloudwatch Events rules. The names will be\npre-pended with this value.\n",
+        "category": "turbot#/control/categories/configured",
+        "parent": "#/policy/types/eventHandlersEventsRules",
+        "targets": "#/resource/types/region",
+        "schema": {
+          "type": "string",
+          "default": "turbot_",
+          "example": "turbot_"
+        }
+      },
+      "eventHandlersEventsRulesEventSources": {
+        "icon": "fal-file-alt",
+        "title": "Event Sources",
+        "readOnly": true,
+        "description": "The Terraform source used to configure the Turbot Event Handlers stack.\n\nThis stack configures AWS CloudWatch Events rules and targets, and SNS\ntopics and subscriptions to enable real-time event handling in an AWS\nregion.\n\nThis policy is read-only, as source is generated by Turbot.\n",
+        "category": "turbot#/control/categories/configured",
+        "parent": "#/policy/types/eventHandlersEventsRules",
+        "targets": "#/resource/types/region",
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "eventHandlersEventsRulesCustomEventPatterns": {
+        "title": "Custom Event Patterns",
+        "icon": "fal-file-invoice",
+        "description": "The cloudwatch event pattern use by the AWS S3 module to specify which\nevents to forward to the Turbot Event Handlers.\n\nThis a read-only policy used internally by Turbot.\n",
+        "category": "turbot#/control/categories/configured",
+        "parent": "#/policy/types/eventHandlersEventsRules",
+        "targets": "#/resource/types/region",
+        "schema": {
+          "$ref": "#/definitions/eventPatternList"
+        }
+      },
+      "eventHandlersSource": {
+        "title": "Source",
+        "icon": "fal-file-alt",
+        "readOnly": true,
+        "description": "The Terraform source used to configure the Event Handlers stack.\nThis policy is read-only, as the Event Handlers source is generated by Turbot\n",
+        "category": "turbot#/control/categories/configured",
+        "parent": "#/policy/types/eventHandlers",
+        "targets": "#/resource/types/region",
+        "schema": {
+          "type": "string",
+          "x-schema-form": {
+            "type": "code",
+            "language": "json"
+          }
+        }
+      },
+      "eventHandlersTerraformVersion": {
+        "title": "Terraform Version",
+        "icon": "fal-bring-forward",
+        "parent": "#/policy/types/eventHandlers",
+        "category": "turbot#/control/categories/configured",
+        "readOnly": true,
+        "targets": [
+          "#/resource/types/region"
+        ],
+        "description": "The Version of Terraform to use for this stack.\nSpecify an [npm-style semver](https://docs.npmjs.com/misc/semver) string to\ndetermine which version of the Terraform container\nTurbot will use to run this stack.\nA Turbot `Stack` is a set of resources configured by Turbot,\nas specified  via Terraform source.  Stacks are responsible\nfor the creation and deletion of multiple resources. Once created,\nstack resources are responsible for configuring themselves from\nthe stack source via their `Configured` control.\n",
+        "schema": {
+          "type": "string",
+          "default": "0.11.*"
+        }
+      },
+      "eventPoller": {
+        "title": "Event Poller",
+        "icon": "fab-searchengin",
+        "description": "Configure the AWS Event Poller.  When set to `Enabled`, the poller will run at the interval specified to retrieve the latest events and forward them to the Turbot Router.\n\nNote: The Event Poller and Turbot Event Handler are different mechanisms for sending information to Turbot.  You should enable one or the other, but not both.\n",
+        "category": "turbot#/control/categories/other",
+        "targets": "#/resource/types/region",
+        "parent": "#/policy/types/turbot",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "Enabled",
+            "Disabled"
+          ]
+        },
+        "defaultTemplate": "{% if $.value == 'Enforce: Configured' %}Disabled{% else %}Enabled{% endif%}\n",
+        "defaultTemplateInput": "{\n  value: policy(uri: \"tmod:@turbot/aws#/policy/types/eventHandlers\")\n}\n"
+      },
+      "eventPollerInterval": {
+        "title": "Interval",
+        "description": "The polling interval.  This policy determines how often\nthe event poller will run.\n",
+        "icon": "fal-alarm-plus",
+        "targets": "#/resource/types/region",
+        "parent": "#/policy/types/eventPoller",
+        "category": "turbot#/control/categories/other",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "Every 1 minute",
+            "Every 2 minutes",
+            "Every 3 minutes",
+            "Every 4 minutes",
+            "Every 5 minutes",
+            "Every 6 minutes",
+            "Every 7 minutes",
+            "Every 8 minutes",
+            "Every 9 minutes",
+            "Every 10 minutes"
+          ],
+          "default": "Every 2 minutes"
+        }
+      },
+      "eventPollerWindow": {
+        "title": "Window",
+        "description": "The polling window, in minutes. This policies determines the oldest events the event poller will retrieve. For example, setting the window to '15  minutes' will cause the poller to retrieve all events from the previous 15 minutes every time it runs.\n\nThe Window must be greater than the Interval, and it is recommended to be at least twice the Interval. For example, if the Interval is 'Every 5 Minutes', the Window should be at least '10 Minutes'.\n",
+        "icon": "fal-alarm-plus",
+        "targets": "#/resource/types/region",
+        "parent": "#/policy/types/eventPoller",
+        "category": "turbot#/control/categories/other",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "15 minutes",
+            "16 minutes",
+            "17 minutes",
+            "18 minutes",
+            "19 minutes",
+            "20 minutes",
+            "21 minutes",
+            "22 minutes",
+            "23 minutes",
+            "24 minutes",
+            "25 minutes",
+            "26 minutes",
+            "27 minutes",
+            "28 minutes",
+            "29 minutes",
+            "30 minutes"
+          ],
+          "default": "15 minutes"
+        }
+      },
+      "logging": {
+        "icon": "fal-info-circle",
+        "title": "Logging",
+        "parent": "#/policy/types/turbot",
+        "category": "turbot#/control/categories/resourceLogging"
+      },
+      "loggingBucket": {
+        "icon": "fal-info-circle",
+        "title": "Bucket",
+        "description": "Configure the Turbot Logging Bucket stack.\n\nThis stack configures an AWS S3 Bucket for use as a destination\nfor logs from other AWS services.\n",
+        "parent": "#/policy/types/logging",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "Skip",
+            "Check: Configured",
+            "Check: Not configured",
+            "Enforce: Configured",
+            "Enforce: Not configured"
+          ],
+          "default": "Skip"
+        }
+      },
+      "loggingBucketName": {
+        "icon": "fal-info-circle",
+        "title": "Name",
+        "readOnly": true,
+        "description": "A read-only policy that displays the calculated Turbot logging bucket name\nfor this region.\n\nThis stack configures an AWS S3 Bucket for use as a destination\nfor logs from other AWS services.\n",
+        "parent": "#/policy/types/loggingBucket",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "loggingBucketNamePrefix": {
+        "icon": "fal-info-circle",
+        "title": "Prefix",
+        "description": "A string to be used as a prefix to the turbot generated name\non the Turbot logging bucket.  The name will be pre-pended\nwith this value.\n\nThis stack configures an AWS S3 Bucket for use as a destination\nfor logs from other AWS services.\n",
+        "parent": "#/policy/types/loggingBucketName",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "schema": {
+          "type": "string",
+          "default": "turbot-",
+          "example": "turbot-"
+        }
+      },
+      "loggingBucketTags": {
+        "icon": "fal-info-circle",
+        "title": "Tags",
+        "description": "A list of key:value pairs to add as AWS tags on the Turbot\nlogging bucket.\n\nThis stack configures an AWS S3 Bucket for use as a destination\nfor logs from other AWS services.\n",
+        "parent": "#/policy/types/loggingBucket",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "schema": {
+          "$ref": "#/definitions/tagsTemplateTagsMap",
+          "default": {}
+        }
+      },
+      "loggingBucketVersioning": {
+        "icon": "fal-info-circle",
+        "title": "Versioning",
+        "description": "Configure versioning on the AWS S3 Bucket.\n\nThis stack configures an AWS S3 Bucket for use as a destination\nfor logs from other AWS services.\n",
+        "parent": "#/policy/types/loggingBucket",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "Disabled",
+            "Enabled"
+          ],
+          "example": [
+            "Enabled"
+          ],
+          "default": "Enabled"
+        }
+      },
+      "loggingBucketDefaultEncryption": {
+        "icon": "fal-info-circle",
+        "title": "Default Encryption",
+        "description": "Configure default encryption on the AWS S3 Bucket.\n\nThis stack configures an AWS S3 Bucket for use as a destination\nfor logs from other AWS services.\n",
+        "parent": "#/policy/types/loggingBucket",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "None",
+            "AWS SSE"
+          ],
+          "example": [
+            "AWS SSE"
+          ],
+          "default": "AWS SSE"
+        }
+      },
+      "loggingBucketRegions": {
+        "icon": "fal-info-circle",
+        "title": "Regions",
+        "description": "A list of regions in which to create Turbot logging buckets.\n\nThis stack configures an AWS S3 Bucket for use as a destination\nfor logs from other AWS services.\n",
+        "parent": "#/policy/types/loggingBucket",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "schema": {
+          "$ref": "#/definitions/regionNameMatcherList"
+        },
+        "defaultTemplate": "{% for item in $.approvedRegionsPolicy %}- '{{ item }}'\n{% endfor %}",
+        "defaultTemplateInput": [
+          "{\n  account {\n    turbot {\n      id\n    }\n  }\n}\n",
+          "{\n  approvedRegionsPolicy: policy(uri: \"#/policy/types/approvedRegionsDefault\", resourceId: \"{{ $.account.turbot.id }}\")\n}\n"
+        ]
+      },
+      "loggingBucketAccessLogging": {
+        "icon": "fal-info-circle",
+        "title": "Access Logging",
+        "description": "Configure server access logging on the AWS S3 Bucket.\n\nThis stack configures an AWS S3 Bucket for use as a destination\nfor logs from other AWS services.\n",
+        "parent": "#/policy/types/loggingBucket",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "Disabled",
+            "Enabled"
+          ],
+          "example": [
+            "Disabled"
+          ],
+          "default": "Disabled"
+        }
+      },
+      "loggingBucketAccessLoggingBucket": {
+        "icon": "fal-info-circle",
+        "title": "Bucket",
+        "description": "Configure server access logging on the AWS S3 Bucket.\n\nThis stack configures an AWS S3 Bucket for use as a destination\nfor logs from other AWS services.\n",
+        "parent": "#/policy/types/loggingBucketAccessLogging",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "schema": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9._-]{1,255}$",
+          "default": ""
+        }
+      },
+      "loggingBucketAccessLoggingBucketKeyPrefix": {
+        "icon": "fal-info-circle",
+        "title": "Key Prefix",
+        "description": "Configure server access logging on the AWS S3 Bucket.\n\nThis stack configures an AWS S3 Bucket for use as a destination\nfor logs from other AWS services.\n",
+        "parent": "#/policy/types/loggingBucketAccessLoggingBucket",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "schema": {
+          "type": "string",
+          "pattern": "^.{1,200}$",
+          "default": ""
+        }
+      },
+      "loggingBucketSource": {
+        "icon": "fal-info-circle",
+        "title": "Source",
+        "readOnly": true,
+        "description": "The Terraform source used to configure the Turbot Logging Bucket stack.\n\nThis stack configures an AWS S3 Bucket for use as a destination\nfor logs from other AWS services.\n\nThis policy is read-only, as source is generated by Turbot.\n",
+        "parent": "#/policy/types/loggingBucket",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "schema": {
+          "type": "string",
+          "x-schema-form": {
+            "type": "code",
+            "language": "json"
+          }
+        }
+      },
+      "loggingBucketTerraformVersion": {
+        "title": "Terraform Version",
+        "icon": "fal-bring-forward",
+        "parent": "#/policy/types/logging",
+        "category": "turbot#/control/categories/configured",
+        "readOnly": true,
+        "targets": [
+          "#/resource/types/region"
+        ],
+        "description": "The Version of Terraform to use for this stack.\nSpecify an [npm-style semver](https://docs.npmjs.com/misc/semver) string to\ndetermine which version of the Terraform container\nTurbot will use to run this stack.\n\nA Turbot `Stack` is a set of resources configured by Turbot,\nas specified  via Terraform source.  Stacks are responsible\nfor the creation and deletion of multiple resources. Once created,\nstack resources are responsible for configuring themselves from\nthe stack source via their `Configured` control.\n",
+        "schema": {
+          "type": "string",
+          "default": "0.11.*"
+        }
+      },
+      "regionsDefault": {
+        "title": "Regions",
+        "icon": "fal-globe",
+        "description": "A list of AWS regions in which resources are recorded.\n\nThe expected format is an array of regions names.\n\nThis policy is the default value for all AWS services' `Regions` policies.\n",
+        "parent": "#/resource/types/account",
+        "targets": "#/resource/types/account",
+        "category": "turbot#/control/categories/cloudLocation",
+        "schema": {
+          "type": "array",
+          "default": [
+            "ap-northeast-1",
+            "ap-northeast-2",
+            "ap-south-1",
+            "ap-southeast-1",
+            "ap-southeast-2",
+            "ca-central-1",
+            "eu-central-1",
+            "eu-north-1",
+            "eu-west-1",
+            "eu-west-2",
+            "eu-west-3",
+            "sa-east-1",
+            "us-east-1",
+            "us-east-2",
+            "us-west-1",
+            "us-west-2",
+            "us-gov-east-1",
+            "us-gov-west-1",
+            "cn-north-1",
+            "cn-northwest-1"
+          ],
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          }
+        }
+      },
+      "approvedRegionsDefault": {
+        "icon": "fal-check-double",
+        "title": "Approved Regions [Default]",
+        "description": "A list of AWS regions in which resources are approved for use.\n\nThe expected format is an array of regions names. You may use the '*' and\n'?' wildcard characters.\n\nThis policy is the default value for all AWS services' `Approved Regions`\npolicies.\n\nThis policy is also used as the default value for `AWS > Turbot > Logging >\nBucket > Regions`, which determines in which regions to create Turbot S3\nlogging buckets.\n",
+        "parent": "#/resource/types/account",
+        "targets": "#/resource/types/account",
+        "category": "turbot#/control/categories/resourceApproved",
+        "schema": {
+          "$ref": "#/definitions/regionNameMatcherList"
+        },
+        "defaultTemplate": "{% if $.regions.value | length == 0 %} [] {% endif %}{% for item in $.regions.value %}- '{{ item }}'\n{% endfor %}",
+        "defaultTemplateInput": "{\n  regions: policyValue(uri:\"tmod:@turbot/aws#/policy/types/regionsDefault\") {\n    value\n  }\n}\n"
+      },
+      "trustedAccounts": {
+        "title": "Trusted Accounts [Default]",
+        "icon": "fal-user-check",
+        "parent": "#/resource/types/account",
+        "category": "turbot#/control/categories/securityTrustedAccess",
+        "targets": [
+          "#/resource/types/account"
+        ],
+        "description": "A list of AWS Account IDs that users may share resources with.\n\nThe expected format is an array of account IDs.\n\nThis policy is the default value for all AWS services' `Trusted Accounts` policies.\n\n```\nexample:\n  - \"013122550996\"\n  - \"560741234067\"\n```\n",
+        "schema": {
+          "type": "array",
+          "default": [
+            "*"
+          ],
+          "items": {
+            "type": "string",
+            "pattern": "(?:^[0-9]{12}$|^\\*$)"
+          }
+        }
+      },
+      "trustedServices": {
+        "title": "Trusted Services [Default]",
+        "icon": "fal-user-cog",
+        "parent": "#/resource/types/account",
+        "category": "turbot#/control/categories/securityTrustedAccess",
+        "targets": [
+          "#/resource/types/account"
+        ],
+        "description": "A list of AWS service principals that users may share resources with.\n\nThe expected format is an array of services.\n\nThis policy is the default value for all AWS services' `Trusted Services` policies.\n\n```\nexample:\n  - sns.amazonaws.com\n  - ec2.amazonaws.com\n```\n",
+        "schema": {
+          "type": "array",
+          "default": [
+            "*"
+          ],
+          "items": {
+            "type": "string",
+            "pattern": "(?:^\\S*\\.amazonaws\\.com$|^\\*$)"
+          }
+        }
+      },
+      "trustedIdentityProviders": {
+        "title": "Trusted Identity Providers [Default]",
+        "icon": "fal-id-card-alt",
+        "parent": "#/resource/types/account",
+        "category": "turbot#/control/categories/securityTrustedAccess",
+        "targets": [
+          "#/resource/types/account"
+        ],
+        "description": "A list of AWS federation principals that users may share resources with.\n\nThe expected format is an array of identity providers.\n\nThis policy is the default value for all AWS services' `Trusted Identity Providers` policies.\n\n```\nexample:\n  - www.google.com\n  - www.facebook.com\n```\n",
+        "schema": {
+          "type": "array",
+          "default": [
+            "*"
+          ],
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "trustedOrganizations": {
+        "title": "Trusted Organizations [Default]",
+        "icon": "fal-sitemap",
+        "parent": "#/resource/types/account",
+        "category": "turbot#/control/categories/securityTrustedAccess",
+        "targets": [
+          "#/resource/types/account"
+        ],
+        "description": "A list of AWS Organization IDs that users may share resources with.\n\nThe expected format is an array of organization IDs.\n\nThis policy is the default value for all AWS services' `Trusted Organizations` policies.\n\n```\nexample:\n  - \"o-333333333\"\n  - \"o-c3a5y4wd52\"\n```\n",
+        "schema": {
+          "type": "array",
+          "default": [
+            "*"
+          ],
+          "items": {
+            "type": "string",
+            "pattern": "(?:^o-[a-z0-9]{10,32}$|^\\*$)"
+          }
+        }
+      },
+      "turbot": {
+        "title": "Turbot",
+        "icon": "fab-android",
+        "parent": "#/resource/types/aws",
+        "category": "turbot#/control/categories/turbot"
+      },
+      "organizationCmdb": {
+        "title": "CMDB",
+        "icon": "fal-coins",
+        "description": "Record and synchronize details for AWS organization into the CMDB.",
+        "parent": "#/resource/types/organization",
+        "targets": "#/resource/types/account",
+        "category": "turbot#/control/categories/cmdb",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "Skip",
+            "Enforce: Enabled"
+          ],
+          "example": [
+            "Skip"
+          ],
+          "default": "Enforce: Enabled"
+        }
+      },
+      "organizationalUnitCmdb": {
+        "title": "CMDB",
+        "icon": "fal-coins",
+        "description": "Record and synchronize details for AWS Organizational Units into the CMDB.",
+        "parent": "#/resource/types/organizationalUnit",
+        "targets": "aws#/resource/types/organization",
+        "category": "turbot#/control/categories/cmdb",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "Skip",
+            "Enforce: Enabled"
+          ],
+          "example": [
+            "Skip"
+          ],
+          "default": "Enforce: Enabled"
+        }
+      },
+      "billingconsoleCustomEventPatterns": {
+        "title": "Billing Console",
+        "icon": "fal-file-invoice",
+        "parent": "aws#/policy/types/eventHandlersEventsRulesCustomEventPatterns",
+        "targets": [
+          "aws#/resource/types/region"
+        ],
+        "description": "The CloudWatch Events event pattern used by the AWS  module to specify\nwhich events to forward to the Turbot Event Handlers.\n",
+        "category": "turbot#/control/categories/configured",
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  }
+                }
+              },
+              "value": {
+                "type": "object",
+                "properties": {
+                  "source": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "detail-type": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "detail": {
+                    "type": "object",
+                    "property": {
+                      "eventName": {
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "eventName"
+                    ]
+                  }
+                },
+                "required": [
+                  "source"
+                ]
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "default": [
+            {
+              "type": {
+                "title": "Billing Console",
+                "name": "billingconsole"
+              },
+              "value": {
+                "source": [
+                  "aws.billingconsole"
+                ],
+                "detail-type": [
+                  "AWS Console Action via CloudTrail"
+                ],
+                "detail": {
+                  "eventName": [
+                    "DisableRegion",
+                    "EnableRegion"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      },
+      "loggingBucketDefault": {
+        "icon": "fab-bitbucket",
+        "title": "Logging Bucket [Default]",
+        "description": "Specifies an S3 bucket to be used as the default logging\ndestination in this region.\n\nThis policy is referenced by other policy to provide a single\nconfigurable logging destination across services.\n",
+        "parent": "#/resource/types/region",
+        "targets": "#/resource/types/region",
+        "category": "turbot#/control/categories/resourceLogging",
+        "schema": {
+          "type": "string"
+        },
+        "defaultTemplate": "{{ $.bucketName }}",
+        "defaultTemplateInput": [
+          "{\n  region {\n    turbot {\n      id\n    }\n  }\n}\n",
+          "{\n  bucketName: policy(uri:\"#/policy/types/loggingBucketName\", resourceId: \"{{ $.region.turbot.id }}\")\n}\n"
+        ]
+      },
+      "regionStack": {
+        "title": "Stack",
+        "icon": "fal-layer-group",
+        "parent": "#/resource/types/region",
+        "category": "turbot#/control/categories/configured",
+        "targets": [
+          "aws#/resource/types/region"
+        ],
+        "description": "Configure a custom stack on AWS, per the custom `Stack > Source`.\n\nA Turbot `Stack` is a set of resources configured by Turbot, as specified\nvia Terraform source.  Stacks are responsible for the creation and deletion\nof multiple resources. Once created, stack resources are responsible for\nconfiguring themselves from the stack source via their `Configured` control.\n",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "Skip",
+            "Check: Configured",
+            "Enforce: Configured"
+          ],
+          "default": "Skip"
+        }
+      },
+      "regionStackSource": {
+        "title": "Source",
+        "icon": "fal-file-alt",
+        "parent": "#/policy/types/regionStack",
+        "category": "turbot#/control/categories/configured",
+        "targets": [
+          "aws#/resource/types/region"
+        ],
+        "description": "The Terraform HCL source used to configure this stack.\n\nA Turbot `Stack` is a set of resources configured by Turbot, as specified\nvia Terraform source.  Stacks are responsible for the creation and deletion\nof multiple resources. Once created, stack resources are responsible for\nconfiguring themselves from the stack source via their `Configured` control.\n",
+        "schema": {
+          "type": "string",
+          "default": "",
+          "x-schema-form": {
+            "type": "code",
+            "language": "hcl"
+          }
+        }
+      },
+      "regionStackVariables": {
+        "title": "Variables",
+        "icon": "fal-pen",
+        "parent": "#/policy/types/regionStack",
+        "category": "turbot#/control/categories/configured",
+        "targets": [
+          "aws#/resource/types/region"
+        ],
+        "description": "Terraform variables in Terraform HCL that will be used as\ninputs to the stack as a [.tfvars file](https://www.terraform.io/docs/configuration/variables.html#variable-definitions-tfvars-files).\n\nA Turbot `Stack` is a set of resources configured by Turbot,\nas specified  via Terraform source.  Stacks are responsible\nfor the creation and deletion of multiple resources. Once created,\nstack resources are responsible for configuring themselves from\nthe stack source via their `Configured` control.\n",
+        "schema": {
+          "type": "string",
+          "x-schema-form": {
+            "type": "code",
+            "language": "hcl"
+          }
+        }
+      },
+      "regionStackSecretVariables": {
+        "title": "Secret Variables",
+        "icon": "fal-pen",
+        "parent": "#/policy/types/regionStack",
+        "category": "turbot#/control/categories/configured",
+        "secret": true,
+        "targets": [
+          "aws#/resource/types/region"
+        ],
+        "description": "Terraform secret variables in Terraform HCL that will be used as\ninputs to the stack as a [.tfvars file](https://www.terraform.io/docs/configuration/variables.html#variable-definitions-tfvars-files).\n\nA Turbot `Stack` is a set of resources configured by Turbot,\nas specified  via Terraform source.  Stacks are responsible\nfor the creation and deletion of multiple resources. Once created,\nstack resources are responsible for configuring themselves from\nthe stack source via their `Configured` control.\n",
+        "schema": {
+          "type": "string",
+          "x-schema-form": {
+            "type": "code",
+            "language": "hcl"
+          }
+        }
+      },
+      "regionStackTerraformVersion": {
+        "title": "Terraform Version",
+        "icon": "fal-bring-forward",
+        "parent": "#/policy/types/regionStack",
+        "category": "turbot#/control/categories/configured",
+        "targets": [
+          "aws#/resource/types/region"
+        ],
+        "description": "The Version of Terraform to use for this stack.\nSpecify an [npm-style semver](https://docs.npmjs.com/misc/semver) string to\ndetermine which version of the Terraform container\nTurbot will use to run this stack.\n\nA Turbot `Stack` is a set of resources configured by Turbot,\nas specified  via Terraform source.  Stacks are responsible\nfor the creation and deletion of multiple resources. Once created,\nstack resources are responsible for configuring themselves from\nthe stack source via their `Configured` control.\n",
+        "schema": {
+          "type": "string"
+        },
+        "defaultTemplate": "{% if $.terraformVersion %}\"{{$.terraformVersion}}\"{% else %}\"\"{% endif %}",
+        "defaultTemplateInput": "{\n  terraformVersion: policy(uri:\"tmod:@turbot/turbot#/policy/types/stackTerraformVersion\")\n}\n"
+      },
+      "accountBudgetEnabled": {
+        "title": "Enabled",
+        "icon": "fal-money-bill-alt",
+        "parent": "#/resource/types/budget",
+        "targets": "#/resource/types/account",
+        "category": "turbot#/control/categories/resourceLogging",
+        "description": "Determine whether budget reporting is enabled for the AWS Account.\n\nIf enabled, the Budget control will gather cost data\nfrom the cloud provider, and will alarm if the\nBudget > State reaches the configured threshold.\n",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "Skip",
+            "Check: Budget > State is On Target or below"
+          ],
+          "example": [
+            "Skip"
+          ],
+          "default": "Skip"
+        }
+      },
+      "accountBudgetLimit": {
+        "title": "Target",
+        "icon": "fal-sack",
+        "parent": "#/resource/types/budget",
+        "targets": "#/resource/types/account",
+        "category": "turbot#/control/categories/resourceLogging",
+        "description": "The budget target for this AWS Account, in US Dollars.  The Budget > state is calculated\nby comparing this target to the Current Spend and Forecast Spend.\n\nNote: You must change this value from the default in order to enforce budget actions\n",
+        "schema": {
+          "type": "number",
+          "default": -1
+        }
+      },
+      "accountBudgetState": {
+        "title": "State",
+        "icon": "fal-money-check-alt",
+        "parent": "#/resource/types/budget",
+        "targets": "#/resource/types/account",
+        "category": "turbot#/control/categories/resourceLogging",
+        "defaultInterval": {
+          "hours": 6
+        },
+        "description": "The current state of the budget, based on the Current Spend,\nForecast Spend, and Thresholds\n\n**Note**: The default (calculated) value is usually appropriate, however\nyou can override the Turbot behavior by setting this policy (either\nvia calculated policy or immediate value).  DON'T CHANGE THIS UNLESS\nYOU KNOW WHAT YOU\"RE DOING!\n",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "Unknown",
+            "Unused",
+            "Under",
+            "On target",
+            "Over",
+            "Critical",
+            "Shutdown"
+          ]
+        },
+        "defaultTemplate": "'{%- if $.budgetEnabled == \"Skip\" -%}\n  Unknown\n  {%- elif $.budgetData.items[0].metadata.budgetUpdatedSince >= 23 or $.budgetData.items[0].currentMonthForecastSpend === \"\" or $.budgetData.items[0].currentMonthActualSpend === \"\" or $.target === -1 -%}\n  Unknown\n  {%- elif $.budgetData.items[0].currentMonthForecastSpend >= 5 * $.target or $.budgetData.items[0].currentMonthActualSpend >= 3 * $.target -%}\n  Shutdown\n  {%- elif $.budgetData.items[0].currentMonthForecastSpend >= 3 * $.target or $.budgetData.items[0].currentMonthActualSpend >= 2 * $.target -%}\n  Critical\n  {%- elif $.budgetData.items[0].currentMonthForecastSpend >= 1.25 * $.target or $.budgetData.items[0].currentMonthActualSpend > 1 * $.target -%}\n  Over\n  {%- elif $.budgetData.items[0].currentMonthForecastSpend >= 0.5 * $.target -%}\n  On target\n  {%- elif $.budgetData.items[0].currentMonthForecastSpend >= 0.1 * $.target -%}\n  Under\n  {%- else -%}\n  Unused\n  {%- endif -%}'\n",
+        "defaultTemplateInput": [
+          "{\n  item: account {\n    turbot {\n      id\n    }\n  }\n}\n",
+          "{\n  target: policy(uri: \"#/policy/types/accountBudgetLimit\")\n  budgetEnabled: policy(uri: \"#/policy/types/accountBudgetEnabled\")\n  budgetData: resources(filter: \"resourceTypeId:'tmod:@turbot/aws#/resource/types/budget' resourceId:{{ $.item.turbot.id }}\") {\n    items{\n      currentMonthActualSpend: get(path:\"currentMonthActualSpend\")\n      currentMonthForecastSpend: get(path:\"currentMonthForecastSpend\")\n      lastUpdatedTime: get(path:\"lastUpdatedTime\")\n      metadata\n    }\n  }\n}\n"
+        ]
+      }
+    }
+  },
+  "resource": {
+    "types": {
+      "account": {
+        "title": "Account",
+        "icon": "fab-aws",
+        "parent": "#/resource/types/aws",
+        "interfaces": [
+          "turbot#/resource/interfaces/grants",
+          "turbot#/resource/interfaces/maintainable",
+          "turbot#/resource/interfaces/accountable"
+        ],
+        "resourceParents": [
+          "turbot#/resource/types/turbot",
+          "turbot#/resource/types/folder",
+          "#/resource/types/root",
+          "#/resource/types/organizationalUnit"
+        ],
+        "metadataTemplates": {
+          "title": "{% if $.AccountAlias %}\"{{ $.AccountAlias }}\"{% else %}\"{{ $.Id }}\"{% endif %}\n",
+          "akas": "- \"arn:{{ $.turbot.custom.aws.partition }}:::{{ $.Id }}\"\n"
+        },
+        "metadataTemplateTests": [
+          {
+            "description": "Valid - Base test",
+            "input": {
+              "Id": 123456789012,
+              "turbot": {
+                "custom": {
+                  "aws": {
+                    "accountId": 123456789012,
+                    "partition": "aws"
+                  }
+                }
+              }
+            },
+            "expect": {
+              "title": 123456789012,
+              "akas": [
+                "arn:aws:::123456789012"
+              ]
+            }
+          }
+        ],
+        "category": "tmod:@turbot/turbot#/resource/categories/cloudService",
+        "schema": {
+          "$ref": "#/definitions/account"
+        },
+        "createSchema": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/account"
+            },
+            {
+              "type": "object",
+              "required": [
+                "Id"
+              ]
+            }
+          ]
+        },
+        "updateSchema": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/account"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "Id": {
+                  "type": "null"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "aws": {
+        "title": "AWS",
+        "icon": "fab-aws",
+        "category": "tmod:@turbot/turbot#/resource/categories/cloudService",
+        "schema": {
+          "allOf": [
+            {
+              "$ref": "tmod:@turbot/turbot#/definitions/service"
+            },
+            {
+              "properties": {
+                "title": {
+                  "const": "AWS"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "organization": {
+        "title": "Organization",
+        "description": "AWS Organization Resource",
+        "icon": "fal-sitemap",
+        "parent": "#/resource/types/aws",
+        "resourceParents": "turbot#/resource/types/folder",
+        "category": "turbot#/resource/categories/other",
+        "metadataTemplates": {
+          "title": "{{ $.Id }}",
+          "akas": "- \"{{ $.Arn }}\"\n"
+        },
+        "metadataTemplateTests": [
+          {
+            "description": "Valid - Base test",
+            "input": {
+              "Id": "o-exampleorgid",
+              "Arn": "arn:aws:organizations::111111111111:organization/o-exampleorgid",
+              "turbot": {
+                "custom": {
+                  "aws": {
+                    "accountId": 111111111111
+                  }
+                }
+              }
+            },
+            "expect": {
+              "title": "o-exampleorgid",
+              "akas": [
+                "arn:aws:organizations::111111111111:organization/o-exampleorgid"
+              ]
+            }
+          }
+        ],
+        "schema": {
+          "$ref": "#/definitions/organization"
+        }
+      },
+      "organizationalUnit": {
+        "title": "Organizational Unit",
+        "icon": "fal-user",
+        "parent": "#/resource/types/aws",
+        "resourceParents": [
+          "#/resource/types/organization",
+          "turbot#/resource/types/folder"
+        ],
+        "category": "turbot#/resource/categories/cloudOrganization",
+        "metadataTemplates": {
+          "title": "{{ $.Name }}",
+          "akas": "- \"{{ $.Arn }}\"\n",
+          "resourceParentAka": "{{ $.Arn.split('/').slice(0,2).join('/') }}"
+        },
+        "metadataTemplateTests": [
+          {
+            "description": "Base test",
+            "input": {
+              "Name": "test",
+              "Arn": "arn:aws:organizations::111111111111:ou/o-exampleorgid/ou-examplerootid111-exampleouid111",
+              "turbot": {
+                "akas": [
+                  "arn:aws:organizations::111111111111:ou/o-exampleorgid/ou-examplerootid111-exampleouid111"
+                ],
+                "title": "test",
+                "custom": {
+                  "aws": {
+                    "accountId": 123456789012
+                  }
+                }
+              }
+            },
+            "expect": {
+              "title": "test",
+              "akas": [
+                "arn:aws:organizations::111111111111:ou/o-exampleorgid/ou-examplerootid111-exampleouid111"
+              ],
+              "resourceParentAka": "arn:aws:organizations::111111111111:ou/o-exampleorgid"
+            }
+          }
+        ],
+        "schema": {
+          "$ref": "#/definitions/organizationalUnit"
+        }
+      },
+      "permissionMap": {
+        "title": "Permission Map",
+        "icon": "fal-map-marker-alt",
+        "parent": "#/resource/types/aws",
+        "resourceParents": "#/resource/types/account",
+        "category": "turbot#/resource/categories/iam",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "classes": {
+              "type": "array",
+              "items": {
+                "$ref": "turbot#/definitions/permissionTypeReference"
+              }
+            },
+            "prefix": {
+              "type": "string",
+              "pattern": "^[-a-z0-9]+$"
+            },
+            "levels": {
+              "type": "object",
+              "properties": {
+                "Owner": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "Admin": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "Operator": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "ReadOnly": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "Metadata": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "User": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "classes",
+            "prefix",
+            "levels"
+          ],
+          "additionalProperties": false
+        },
+        "tests": [
+          {
+            "description": "Simple case",
+            "input": {
+              "classes": [
+                "#/permission/types/aws"
+              ],
+              "prefix": "aws",
+              "levels": {
+                "Owner": [
+                  "foo",
+                  "bar"
+                ]
+              }
+            },
+            "expected": {
+              "status": "VALID"
+            }
+          }
+        ]
+      },
+      "region": {
+        "title": "Region",
+        "icon": "fal-globe",
+        "parent": "#/resource/types/aws",
+        "resourceParents": "#/resource/types/account",
+        "interfaces": [
+          "turbot#/resource/interfaces/grants"
+        ],
+        "metadataTemplates": {
+          "title": "{{ $.Name }}",
+          "akas": "- {% if $.turbot.custom.aws.partition %}\"arn:{{ $.turbot.custom.aws.partition }}::{{ $.Name }}:{{ $.turbot.custom.aws.accountId }}\"{% else %}\"arn:aws::{{ $.Name }}:{{ $.turbot.custom.aws.accountId }}\"{% endif %}\n",
+          "resourceParentAka": "{% if $.turbot.custom.aws.partition %}\"arn:{{ $.turbot.custom.aws.partition }}:::{{ $.turbot.custom.aws.accountId }}\"{% else %}\"arn:aws:::{{ $.turbot.custom.aws.accountId }}\"{% endif %}\n"
+        },
+        "metadataTemplateTests": [
+          {
+            "description": "Valid - Base test commercial cloud",
+            "input": {
+              "Name": "us-east-1",
+              "turbot": {
+                "custom": {
+                  "aws": {
+                    "accountId": 123456789012,
+                    "regionName": "us-east-1",
+                    "partition": "aws"
+                  }
+                }
+              }
+            },
+            "expect": {
+              "title": "us-east-1",
+              "akas": [
+                "arn:aws::us-east-1:123456789012"
+              ],
+              "resourceParentAka": "arn:aws:::123456789012"
+            }
+          },
+          {
+            "description": "Valid - Base test us gov cloud",
+            "input": {
+              "Name": "us-gov-east-1",
+              "turbot": {
+                "custom": {
+                  "aws": {
+                    "accountId": 123456789012,
+                    "regionName": "us-gov-east-1",
+                    "partition": "aws-us-gov"
+                  }
+                }
+              }
+            },
+            "expect": {
+              "title": "us-gov-east-1",
+              "akas": [
+                "arn:aws-us-gov::us-gov-east-1:123456789012"
+              ],
+              "resourceParentAka": "arn:aws-us-gov:::123456789012"
+            }
+          }
+        ],
+        "category": "tmod:@turbot/turbot#/resource/categories/cloudLocation",
+        "schema": {
+          "$ref": "#/definitions/region"
+        }
+      },
+      "root": {
+        "title": "Root",
+        "icon": "fal-file-alt",
+        "parent": "#/resource/types/aws",
+        "resourceParents": "#/resource/types/organization",
+        "category": "turbot#/resource/categories/other",
+        "schema": {
+          "$ref": "#/definitions/root"
+        }
+      },
+      "budget": {
+        "title": "Budget",
+        "icon": "fal-money-check-alt",
+        "description": "AWS Account Budget.",
+        "parent": "#/resource/types/account",
+        "category": "turbot#/resource/categories/cloudService",
+        "resourceParents": "#/resource/types/account",
+        "metadataTemplates": {
+          "akas": "- \"arn:aws:::{{$.turbot.custom.aws.accountId}}:turbotBudget\"\n",
+          "resourceParentAka": "arn:aws:::{{$.turbot.metadata.aws.accountId}}",
+          "title": "Budget"
+        },
+        "metadataTemplateTests": [
+          {
+            "description": "Valid - All data provided",
+            "input": {
+              "turbot": {
+                "metadata": {
+                  "aws": {
+                    "accountId": 123456789012
+                  }
+                }
+              }
+            },
+            "expect": {
+              "akas": [
+                "arn:aws:::123456789012:turbotBudget"
+              ],
+              "resourceParentAka": "arn:aws:::123456789012",
+              "title": "Budget"
+            }
+          }
+        ],
+        "schema": {
+          "$ref": "#/definitions/budget"
+        }
+      }
+    }
+  },
+  "build": "20210602142129807"
+}

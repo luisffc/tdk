@@ -2,7 +2,7 @@ awsRds001:
   title: AWS.RDS.001 - Enable RDS Backups with standard DB retention
   icon: fal-shield-check
   parent: "#/policy/types/dmiccfAwsRds"
-  category: "dmi-ccf#/control/categories/dmiccfDpc"
+  category: "#/control/categories/dmiccfDpc"
   targets:
     - "tmod:@turbot/aws-rds#/resource/types/dbInstance"
   description: |
@@ -19,7 +19,7 @@ awsRds001RetentionDays:
   title: Retention Days
   icon: fal-badge-check
   parent: "#/policy/types/awsRds001"
-  category: "dmi-ccf#/control/categories/dmiccfDpc"
+  category: "#/control/categories/dmiccfDpc"
   targets:
     - "tmod:@turbot/aws-rds#/resource/types/dbInstance"
   description: |

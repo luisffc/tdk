@@ -20,4 +20,4 @@ dmiccf:
   description: Configures a default auditing level against the DMI Controls Framework.
 
   # Policy will be under category hierarchy level: `Dunder Mifflin`
-  category: "dmi-ccf#/control/categories/dmiccf"
+  category: "#/control/categories/dmiccf"

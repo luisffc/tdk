@@ -18,7 +18,7 @@ awsVpc001:
   parent: "#/control/types/dmiccfAwsVpc"
 
   # Control will be under category hierarchy level: `Dunder Mifflin > Vpcwork Security`
-  category: "dmi-ccf#/control/categories/dmiccfNet"
+  category: "#/control/categories/dmiccfNet"
 
   # Control will run against the resource types listed bellow
   targets:

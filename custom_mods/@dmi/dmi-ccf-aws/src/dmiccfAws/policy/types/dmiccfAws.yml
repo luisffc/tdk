@@ -20,10 +20,10 @@ dmiccfAws:
   description: Configures a default auditing level against the DMI Controls Framework for AWS.
 
   # Policy type will be placed under: `Dunder Mifflin`
-  parent: "dmi-ccf#/policy/types/dmiccf"
+  parent: "#/policy/types/dmiccf"
 
   # Policy will be under category hierarchy level: `Dunder Mifflin`
-  category: "dmi-ccf#/control/categories/dmiccf"
+  category: "#/control/categories/dmiccf"
 
   # Here we define the expected data type for the Policy entry
   # For that we will be using JSON Schema (http://json-schema.org)

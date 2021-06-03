@@ -2,7 +2,7 @@ awsIam001:
   title: AWS.IAM.001 - Password policy meets complexity requirements
   icon: fal-shield-check
   parent: "#/policy/types/dmiccfAwsIam"
-  category: "dmi-ccf#/control/categories/dmiccfAac"
+  category: "#/control/categories/dmiccfAac"
   targets:
     - "tmod:@turbot/aws-iam#/resource/types/accountPasswordPolicy"
   description: |
@@ -19,7 +19,7 @@ awsIam001AccountPasswordPolicy:
   title: Account Password Policy
   icon: fal-badge-check
   parent: "#/policy/types/awsIam001"
-  category: "dmi-ccf#/control/categories/dmiccfAac"
+  category: "#/control/categories/dmiccfAac"
   targets:
     - "tmod:@turbot/aws-iam#/resource/types/accountPasswordPolicy"
   description: |
